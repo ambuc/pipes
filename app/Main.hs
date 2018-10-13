@@ -1,6 +1,11 @@
 module Main where
 
-import Lib
+import           Brick
+
+import           Lib
+
+ui :: Widget ()
+ui = str "Hello, world!"
 
 main :: IO ()
-main = someFunc
+main = simpleMain ui

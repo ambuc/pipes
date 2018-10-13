@@ -1,4 +1,4 @@
-# Mockup
+# MOCKUP
 
  01234567890123456789  :: grid: 20 x 10
 0┏┯━━━━━━━━━━━━━━━━━┓  :: pieces: a ─ │      <=> ━ ┃      (and intermediates)
