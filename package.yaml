@@ -22,6 +22,8 @@ description:         Please see the README on GitHub at <https://github.com/ambu
 dependencies:
 - base >= 4.7 && < 5
 - brick >= 0.41.2
+- random >= 1.1
+- vty >= 5.24
 
 library:
   source-dirs: src
