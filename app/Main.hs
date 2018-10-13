@@ -42,5 +42,5 @@ main = do
   let init_vty = Vty.mkVty =<< Vty.standardIOConfig
   let init_channel = Nothing
   let init_app = mkApp
-  init_state <- Init.mkState <$> R.newStdGen
+  init_state <- Init.mkState
   void $ customMain init_vty init_channel init_app init_state
