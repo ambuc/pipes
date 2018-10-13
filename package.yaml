@@ -49,3 +49,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - pipes
+    - hspec >= 2.5.5
+    - QuickCheck >= 2.11.3
+    - Unique
