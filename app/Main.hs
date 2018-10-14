@@ -11,7 +11,7 @@ import           Brick.Types                 (BrickEvent (AppEvent, VtyEvent),
                                               EventM, Next, Widget)
 import           Brick.Util                  (bg, fg, on)
 import           Control.Concurrent          (forkIO, threadDelay)
-import           Control.Concurrent.STM.TVar
+import           Control.Concurrent.STM.TVar (TVar, newTVar, readTVar)
 import           Control.Monad               (forever, void)
 import           Control.Monad.STM           (atomically)
 import           Graphics.Vty                as V
@@ -27,6 +27,7 @@ import           UI
 appEvent :: GameState
          -> BrickEvent () Tick
          -> EventM () (Next GameState)
+appEvent s (AppEvent Tick)                       = continue $ incrementTime s
 appEvent s (VtyEvent (V.EvKey V.KEsc []))        = halt s
 appEvent s (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt s
 appEvent s (VtyEvent (V.EvKey V.KUp []))         = continue $ recomputeState $ move N s
@@ -38,7 +39,6 @@ appEvent s (VtyEvent (V.EvKey (V.KChar 's') [])) = continue $ recomputeState $ m
 appEvent s (VtyEvent (V.EvKey (V.KChar 'a') [])) = continue $ recomputeState $ move W s
 appEvent s (VtyEvent (V.EvKey (V.KChar 'd') [])) = continue $ recomputeState $ move E s
 appEvent s (VtyEvent (V.EvKey (V.KChar ' ') [])) = continue $ recomputeState $ rotateCursor CW s
-appEvent s (AppEvent Tick)                       = continue $ recomputeState s
 appEvent s _                                     = continue $ recomputeState s
 
 aMap :: AttrMap
@@ -58,8 +58,8 @@ mkApp = App { appDraw         = UI.draw         -- s -> [Widget n]
             , appAttrMap      = const aMap      -- s -> AttrMap
             }
 
-control_thread :: TVar Int -> BChan Tick -> IO ()
-control_thread delay chan = forever $ do
+controlThread :: TVar Int -> BChan Tick -> IO ()
+controlThread delay chan = forever $ do
   writeBChan chan Tick
   ms <- atomically $ readTVar delay
   threadDelay ms
@@ -68,7 +68,7 @@ main :: IO ()
 main = do
   chan <- newBChan 10
   delayVar <- atomically $ newTVar 100000
-  void $ forkIO $ control_thread delayVar chan
+  void $ forkIO $ controlThread delayVar chan
 
   let init_vty = V.mkVty =<< V.standardIOConfig
   let init_app = mkApp
