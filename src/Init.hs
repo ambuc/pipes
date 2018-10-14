@@ -10,6 +10,7 @@ someFunc :: IO ()
 someFunc = putStrLn "someFunc"
 
 mkTile :: Shape -> Tile
+mkTile Blank    = Tile Z Z Z Z -- ' '
 mkTile Line     = Tile Z A Z A -- '─'
 mkTile Bend     = Tile A A Z Z -- '└'
 mkTile Tee      = Tile A A A Z -- '├'
@@ -26,16 +27,15 @@ mkRandomTile = do
   return rotated_tile
 
 mkEmptySquare :: Square
-mkEmptySquare = Square {          tile = Nothing
-                       ,     flowstate = NotFlowing
-                       , flowdirection = Nothing
-                       ,    isselected = False
+mkEmptySquare = Square {          _tile = Tile Z Z Z Z
+                       ,     _flowstate = NotFlowing
+                       , _flowdirection = Nothing
                        }
 
 mkRandomSquare :: IO Square
 mkRandomSquare = do
   tile <- mkRandomTile
-  return $ mkEmptySquare { tile = Just tile }
+  return $ mkEmptySquare { _tile = tile }
 
 getBoardWidth = 20
 getBoardHeight = 10
@@ -43,9 +43,11 @@ getBoardHeight = 10
 mkRandomBoard :: IO Board
 mkRandomBoard = do
   random_squares <- replicateM (w * h) mkRandomSquare
+  -- arrays list numerically, i.e. first item of tuple constant, second item varying
+  -- if we want assocs to list over, we need to store (row, col)
   return $ array ( (  0,   0)
-                 , (w-1, h-1) -- w x h
-                 ) $ zip [ (i,j) | i <- [0..w-1] , j <- [0..h-1]]
+                 , (h-1, w-1) -- w x h
+                 ) $ zip [ (y,x) | x <- [0..w-1] , y <- [0..h-1]]
                          random_squares
   where
     h = getBoardHeight
@@ -55,16 +57,16 @@ mkRandomBorder :: IO Border
 mkRandomBorder = do
   n <- Random.randomRIO (0, getBoardWidth-1)
   m <- Random.randomRIO (0, getBoardWidth-1)
-  return Border {   tapLocation = n
-                , drainLocation = m
+  return Border {   _tapLocation = n
+                , _drainLocation = m
                 }
 
 mkState :: IO GameState
 mkState = do
   random_border <- mkRandomBorder
   random_board <- mkRandomBoard
-  let init_cursor = (div getBoardWidth 2, div getBoardHeight 2) -- (x,y)
-  return GameState { border = random_border
-                   ,  board = random_board
-                   , cursor = init_cursor
+  let init_cursor = (div getBoardHeight 2, div getBoardWidth 2) -- (h,w)
+  return GameState { _border = random_border
+                   ,  _board = random_board
+                   , _cursor = init_cursor
                    }
