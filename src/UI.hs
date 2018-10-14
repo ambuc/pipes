@@ -31,18 +31,18 @@ breakWords = defaultWrapSettings { breakLongWords = True }
 -- |.......|
 -- \-----+-/  <-- bottomBorder
 drawBoard :: GameState -> Widget Resource
-drawBoard gs = drawTopBorder
-           <=> hBox [drawLeftBorder, drawPipes gs, drawRightBorder]
-           <=> drawBottomBorder
+drawBoard gs = top_border
+           <=> hBox [left_border, drawPipes gs, right_border]
+           <=> bottom_border
   where
-    drawTopBorder    = str $ "┏" ++ replicate tap_location '━' ++ "┳"
-                                 ++ replicate (w - tap_location - 1) '━' ++ "┓"
-    drawBottomBorder = str $ "┗" ++ replicate drain_location '━' ++ "┻"
-                                 ++ replicate (w - drain_location - 1) '━' ++ "┛"
-    drawLeftBorder   = hLimit 1 $ strWrapWith breakWords $ replicate h '┃'
-    drawRightBorder  = hLimit 1 $ strWrapWith breakWords $ replicate h '┃'
-    tap_location    = gs ^. (border . tapLocation)
-    drain_location  = gs ^. (border . drainLocation)
+    top_border    = str $ "┏" ++ replicate tap_x '━' ++ "┳"
+                                 ++ replicate (w - tap_x - 1) '━' ++ "┓"
+    bottom_border = str $ "┗" ++ replicate drain_x '━' ++ "┻"
+                                 ++ replicate (w - drain_x - 1) '━' ++ "┛"
+    left_border   = hLimit 1 $ strWrapWith breakWords $ replicate h '┃'
+    right_border  = hLimit 1 $ strWrapWith breakWords $ replicate h '┃'
+    (_,   tap_x)   = gs ^. (border . tapLocation)
+    (_, drain_x) = gs ^. (border . drainLocation)
     w = getBoardWidth
     h = getBoardHeight
 

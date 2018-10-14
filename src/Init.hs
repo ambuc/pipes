@@ -4,7 +4,7 @@ import           Control.Monad (replicateM)
 import           Data.Array    (array)
 import qualified System.Random as Random
 
-import           Lens.Micro    ((%~), (&), (.~))
+import           Lens.Micro    ((%~), (&), (.~), (^.))
 
 import           Types
 
@@ -59,16 +59,16 @@ mkRandomBorder :: IO Border
 mkRandomBorder = do
   n <- Random.randomRIO (0, getBoardWidth-1)
   m <- Random.randomRIO (0, getBoardWidth-1)
-  return Border {   _tapLocation = n
-                , _drainLocation = m
+  return Border {   _tapLocation = (            -1, n)
+                , _drainLocation = (getBoardHeight, m)
                 }
 
 mkState :: IO GameState
 mkState = do
-  random_border <- mkRandomBorder
-  random_board <- mkRandomBoard
-  let init_cursor = (div getBoardHeight 2, div getBoardWidth 2) -- (h,w)
-  return GameState { _border = random_border
-                   ,  _board = random_board
+  init_border <- mkRandomBorder
+  init_board  <- mkRandomBoard
+  let init_cursor = (\(h,w) -> (h+1, w)) $ init_border ^. tapLocation
+  return GameState { _border = init_border
+                   ,  _board = init_board
                    , _cursor = init_cursor
                    }

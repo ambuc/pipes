@@ -54,8 +54,8 @@ instance Show Square where
 
 type Board = Array (Int, Int) Square
 
-data Border = Border {   _tapLocation :: Int
-                     , _drainLocation :: Int
+data Border = Border {   _tapLocation :: (Int,Int)
+                     , _drainLocation :: (Int,Int)
                      } deriving (Show)
 
 data GameState = GameState {  _board :: Board
