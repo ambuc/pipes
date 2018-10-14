@@ -2,19 +2,16 @@ module UI
     ( draw
     ) where
 
-import           Brick.AttrMap              (AttrMap, attrMap, attrName)
+import           Brick.AttrMap              (attrName)
 import           Brick.Types                (Widget)
-import           Brick.Widgets.Border       (borderWithLabel, vBorder)
 import           Brick.Widgets.Border.Style (unicode)
 import           Brick.Widgets.Center       (center)
-import           Brick.Widgets.Core         (fill, hBox, hLimit, str,
-                                             strWrapWith, vBox, vLimit,
-                                             withAttr, withBorderStyle, (<+>),
-                                             (<=>))
-import           Data.Array                 (assocs, elems, (!))
-import           Text.Wrap
+import           Brick.Widgets.Core         (fill, hBox, hLimit, str, vBox,
+                                             vLimit, withAttr, withBorderStyle,
+                                             (<+>), (<=>))
+import           Data.Array                 ((!))
 
-import           Lens.Micro                 (ix, (&), (^.))
+import           Lens.Micro                 ((^.))
 
 import           Types
 import           Util

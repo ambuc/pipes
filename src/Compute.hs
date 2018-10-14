@@ -2,37 +2,16 @@ module Compute
     ( recomputeState
     ) where
 
-import           Data.Array     (assocs, elems, (!))
-import           Text.Wrap
-
-import           Lens.Micro     (at, (%~), (&), (.~), (^.), (^?!))
+import           Lens.Micro     ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC (each, ix)
 
 import           Types
 import           Util
 
--- @return the given GameState, with all visual elements re-rendered as a
---         function of the current cursor / tile configuration.
-recomputeState :: GameState -> GameState
-recomputeState = recomputeDisplays
-               . recomputeCursor
-               . recomputeFlow
-               . resetAll
-
 -- @return the given GameState, with all DisplayTiles re-rendered as a
 --         function of their respective Squares.
 recomputeDisplays :: GameState -> GameState
 recomputeDisplays gs = gs & board . each %~ makeDisplayTile
-  where
-    makeDisplayTile :: Square -> Square
-    makeDisplayTile s = s & displaytile .~ d_t
-      where d_t = DisplayTile { _n = if s ^. tile ^. north then A else Z
-                              , _e = if s ^. tile ^.  east then A else Z
-                              , _w = if s ^. tile ^.  west then A else Z
-                              , _s = if s ^. tile ^. south then A else Z
-                              }
-
-
 
 -- @return the given GameState, with all _visited and _flowstate fields updated
 --         to reflect the new connectivity graph.
@@ -80,3 +59,12 @@ resetAll gs = gs & board . each . hascursor   .~ False
                  & board . each . flowing     .~ False
                  & board . each . visited     .~ False
                  & board . each . displaytile .~ DisplayTile Z Z Z Z
+
+-- @return the given GameState, with all visual elements re-rendered as a
+--         function of the current cursor / tile configuration.
+recomputeState :: GameState -> GameState
+recomputeState = recomputeDisplays
+               . recomputeCursor
+               . recomputeFlow
+               . resetAll
+

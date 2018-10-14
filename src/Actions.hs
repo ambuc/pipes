@@ -1,8 +1,9 @@
 module Actions where
 
-import           Data.Array ((!), (//))
+import           Data.Array     ((!), (//))
 
-import           Lens.Micro ((%~), (&), (^.))
+import           Lens.Micro     ((%~), (&), (^.), (^?!))
+import           Lens.Micro.GHC (each, ix)
 
 import           Types
 import           Util
@@ -15,12 +16,6 @@ move dir gs = gs & cursor %~ adj dir
 -- @return the argument GameState, with the Tile under the Cursor rotated in
 --         the given rotational direction.
 rotateCursor :: Wise -> GameState -> GameState
-rotateCursor w gs = gs & board %~ rotateBoard w (gs ^. cursor)
-  where
-    rotateBoard :: Wise -> (Int, Int) -> Board -> Board
-    rotateBoard w cursor b = b // [( cursor, rotateSquare w ( b ! cursor ))]
-      where
-        rotateSquare :: Wise -> Square -> Square
-        rotateSquare w s = s & tile %~ rotate w
+rotateCursor w gs = gs & board . ix (gs ^. cursor) . tile %~ rotate w
 
 
