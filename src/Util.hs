@@ -20,6 +20,11 @@ inBounds (h,w) = h >= 0 && h < getBoardHeight && w >= 0 && w < getBoardWidth
 -- TILES / DISPLAYTILES
 --
 
+-- @return a rotated Tile
+rotate :: Wise -> Tile -> Tile
+rotate CW (Tile a b c d)  = Tile d a b c
+rotate CCW (Tile a b c d) = Tile b c d a
+
 -- @return the canonical empty Tile.
 nullTile = Tile False False False False
 
