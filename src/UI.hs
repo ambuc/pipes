@@ -17,15 +17,15 @@ import           Types
 import           Util
 
 -- @return the rendered GameState.
-draw :: GameState -> [Widget Resource]
+draw :: GameState -> [Widget ()]
 draw gs = [ withBorderStyle unicode
           $ center $ drawGameState gs <=> debugLine
           ]
   where
-    debugLine = str $ show (gs ^. cursor)
+    debugLine = str $ show $ gs ^. time
 
 -- @return the rendered Board, containing the Border and pipes at the center.
-drawGameState :: GameState -> Widget Resource
+drawGameState :: GameState -> Widget ()
 drawGameState gs = hBox [ corner_tl
                         , border_line tap_x
                         , tap
@@ -56,21 +56,21 @@ drawGameState gs = hBox [ corner_tl
 
 
 -- @return the rendered Board.
-drawBoard :: Board -> Widget Resource
+drawBoard :: Board -> Widget ()
 drawBoard b = hLimit getBoardWidth
             $ vLimit getBoardHeight
             $ vBox $ map (drawRow b) [0..getBoardHeight-1]
   where
     -- @return the row at the given index.
-    drawRow :: Board -> Int -> Widget Resource
+    drawRow :: Board -> Int -> Widget ()
     drawRow b h = hBox $ map (drawSquareAt b h) [0..getBoardWidth-1]
 
     -- @return the square at the given coordinates.
-    drawSquareAt :: Board -> Int -> Int -> Widget Resource
+    drawSquareAt :: Board -> Int -> Int -> Widget ()
     drawSquareAt b h w = drawSquare $ b ! (h,w)
 
     -- @return the rendered Square.
-    drawSquare :: Square -> Widget Resource
+    drawSquare :: Square -> Widget ()
     drawSquare s@Square { _hascursor = True }
       | s ^. tile == nullTile = withAttr (attrName "fg-red") $ str "░"
       | otherwise             = withAttr (attrName "fg-red") $ str $ show (s ^. displaytile)

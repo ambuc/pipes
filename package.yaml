@@ -27,6 +27,7 @@ dependencies:
 - microlens-th >= 0.4.2.3
 - microlens-ghc >= 0.4.9.1
 - brick >= 0.41.2
+- stm >= 2.4.5.1
 - random >= 1.1
 - vty >= 5.24
 

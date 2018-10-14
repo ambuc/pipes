@@ -7,8 +7,7 @@ import           Data.List     (elemIndex)
 
 import           Lens.Micro.TH (makeLenses)
 
-data Resource = SomeResource
-  deriving (Eq, Ord)
+data Tick = Tick
 
 data Wise   = CW | CCW
 
@@ -74,6 +73,7 @@ data Border = Border {   _tapLocation :: (Int,Int)
 data GameState = GameState {  _board :: Board
                            , _border :: Border
                            , _cursor :: (Int, Int)
+                           ,   _time :: Int
                            }
 
 makeLenses ''Tile

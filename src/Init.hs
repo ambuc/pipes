@@ -77,4 +77,5 @@ mkState = do
   return GameState { _border = init_border
                    ,  _board = init_board
                    , _cursor = init_cursor
+                   ,   _time = 0
                    }
