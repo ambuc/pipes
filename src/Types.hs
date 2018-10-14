@@ -42,10 +42,13 @@ data Flow   = NotFlowing | FlowingIn | FlowingOut deriving (Show, Eq)
 data Square = Square {          tile :: Maybe Tile
                      ,     flowstate :: Flow       -- for animation
                      , flowdirection :: Maybe Dir  -- for animation
+                     ,    isselected :: Bool       -- is the cursor over this square?
                      } deriving (Eq)
 instance Show Square where
-  show Square {tile = Just t}  = show t
-  show Square {tile = Nothing} = " "
+  show Square {tile = Just t , isselected = True } = "."
+  show Square {tile = Just t , isselected = False} = show t
+  show Square {tile = Nothing, isselected = True } = "░"
+  show Square {tile = Nothing, isselected = False} = " "
 
 type Board = Array (Int, Int) Square
 
@@ -55,5 +58,6 @@ data Border = Border {   tapLocation :: Int
 
 data GameState = GameState {  board :: Board
                            , border :: Border
+                           , cursor :: (Int, Int)
                            } deriving (Show)
 

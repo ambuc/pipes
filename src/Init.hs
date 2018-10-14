@@ -26,9 +26,10 @@ mkRandomTile = do
   return rotated_tile
 
 mkEmptySquare :: Square
-mkEmptySquare = Square { tile = Nothing
-                       , flowstate = NotFlowing
+mkEmptySquare = Square {          tile = Nothing
+                       ,     flowstate = NotFlowing
                        , flowdirection = Nothing
+                       ,    isselected = False
                        }
 
 mkRandomSquare :: IO Square
@@ -52,8 +53,8 @@ mkRandomBoard = do
 
 mkRandomBorder :: IO Border
 mkRandomBorder = do
-  n <- Random.randomRIO (0, getBoardWidth)
-  m <- Random.randomRIO (0, getBoardWidth)
+  n <- Random.randomRIO (0, getBoardWidth-1)
+  m <- Random.randomRIO (0, getBoardWidth-1)
   return Border {   tapLocation = n
                 , drainLocation = m
                 }
@@ -62,6 +63,8 @@ mkState :: IO GameState
 mkState = do
   random_border <- mkRandomBorder
   random_board <- mkRandomBoard
+  let init_cursor = (div getBoardWidth 2, div getBoardHeight 2) -- (x,y)
   return GameState { border = random_border
                    ,  board = random_board
+                   , cursor = init_cursor
                    }
