@@ -20,9 +20,10 @@ import           Types
 
 draw :: GameState -> [Widget Resource]
 draw gs = [ withBorderStyle unicode
-          $ center
-          $ drawBoard gs
+          $ center $ drawBoard gs <=> debugLine
           ]
+  where
+    debugLine = str $ show (gs ^. cursor)
 
 breakWords = defaultWrapSettings { breakLongWords = True }
 
@@ -31,9 +32,8 @@ breakWords = defaultWrapSettings { breakLongWords = True }
 -- \-----+-/  <-- bottomBorder
 drawBoard :: GameState -> Widget Resource
 drawBoard gs = drawTopBorder
-            <=> hBox [drawLeftBorder, drawPipes gs, drawRightBorder]
-            <=> drawBottomBorder
-            <=> debugLine
+           <=> hBox [drawLeftBorder, drawPipes gs, drawRightBorder]
+           <=> drawBottomBorder
   where
     drawTopBorder    = str $ "┏" ++ replicate tap_location '━' ++ "┳"
                                  ++ replicate (w - tap_location - 1) '━' ++ "┓"
@@ -45,7 +45,6 @@ drawBoard gs = drawTopBorder
     drain_location  = gs ^. (border . drainLocation)
     w = getBoardWidth
     h = getBoardHeight
-    debugLine = str $ show (gs ^. cursor)
 
 
 drawPipes :: GameState -> Widget Resource
@@ -57,15 +56,13 @@ drawRow :: GameState -> Int -> Widget Resource
 drawRow gs h = hBox $ map (drawSquare gs h) [0..getBoardWidth-1]
 
 drawSquare :: GameState -> Int -> Int -> Widget Resource
-drawSquare gs h w = drawTile gs h w t
+drawSquare gs h w = drawTile (gs ^. cursor == (h,w)) t
   where t = ((gs ^. board) ! (h,w)) ^. tile
 
-drawTile :: GameState -> Int -> Int -> Tile -> Widget Resource
-drawTile gs h w (Tile Z Z Z Z)
-  | (gs ^. cursor) == (h,w) = str "░"
-  | otherwise               = str " "
-drawTile gs h w t
-  | (gs ^. cursor) == (h,w) = withAttr (attrName "fg-red") $ str $ show t
-  | otherwise               = str $ show t
+-- the bool represents whether or not this tile currently has the cursor over it.
+drawTile :: Bool -> Tile -> Widget Resource
+drawTile True (Tile Z Z Z Z) = withAttr (attrName "fg-red") $ str "░"
+drawTile True t              = withAttr (attrName "fg-red") $ str $ show t
+drawTile False t             = str $ show t
 
 

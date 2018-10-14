@@ -29,11 +29,11 @@ instance Show Tile where
                                    + 9 * fromEnum w
                                    + 3 * fromEnum e
                                    + 1 * fromEnum n)]
-rotateCW :: Tile -> Tile
-rotateCW (Tile a b c d) = Tile d a b c
+data Wise = CW | CCW
 
-rotateCCW :: Tile -> Tile
-rotateCCW (Tile a b c d) = Tile b c d a
+rotate :: Wise -> Tile -> Tile
+rotate CW (Tile a b c d)  = Tile d a b c
+rotate CCW (Tile a b c d) = Tile b c d a
 
 data Shape = Blank | Line | Bend | Tee | Cross | Culdesac deriving (Show, Bounded, Eq, Enum)
 
@@ -50,7 +50,7 @@ data Square = Square {          _tile :: Tile
                      , _flowdirection :: Maybe Dir  -- for animation
                      } deriving (Eq)
 instance Show Square where
-  show Square {_tile = t}            = show t
+  show Square {_tile = t} = show t
 
 type Board = Array (Int, Int) Square
 

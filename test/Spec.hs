@@ -26,13 +26,13 @@ main = hspec $ do
     it "tile-rotation-cw" $ do
       let t = Tile Z B B A
       show t `shouldBe` "┲"
-      show (rotateCW t) `shouldBe` "┪"
+      show (rotate CW t) `shouldBe` "┪"
     it "tile-rotation-ccw" $ do
       let t = Tile A B A Z
       show t `shouldBe` "┝"
-      show (rotateCCW t) `shouldBe` "┸"
+      show (rotate CCW t) `shouldBe` "┸"
     it "tile-rotation-roundtrip" $ do
       let t = Tile A B Z A
-      (rotateCW . rotateCW . rotateCW . rotateCW) t `shouldBe` t
-      (rotateCCW . rotateCCW . rotateCCW . rotateCCW) t `shouldBe` t
+      (rotate CW . rotate CW . rotate CW . rotate CW) t `shouldBe` t
+      (rotate CCW . rotate CCW . rotate CCW . rotate CCW) t `shouldBe` t
 

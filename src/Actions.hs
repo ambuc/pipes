@@ -1,4 +1,4 @@
-module Movement where
+module Actions where
 
 import           Data.Array ((!), (//))
 
@@ -13,12 +13,13 @@ move S gs = gs & cursor %~ (\(h,w) -> (min (getBoardHeight-1) (h+1), w))
 move W gs = gs & cursor %~ (\(h,w) -> (h, max 0 (w-1)))
 move E gs = gs & cursor %~ (\(h,w) -> (h, min (getBoardWidth-1) (w+1)))
 
-rotateSquare :: Square -> Square
-rotateSquare s = s & tile %~ rotateCW
+rotateSquare :: Wise -> Square -> Square
+rotateSquare w s = s & tile %~ rotate w
 
-rotateBoard :: (Int, Int) -> Board -> Board
-rotateBoard cursor b = b // [( cursor, rotateSquare ( b ! cursor ))]
+rotateBoard :: Wise -> (Int, Int) -> Board -> Board
+rotateBoard w cursor b = b // [( cursor, rotateSquare w ( b ! cursor ))]
 
-rotateCursor :: GameState -> GameState
-rotateCursor gs = gs & board %~ rotateBoard (gs ^. cursor)
+rotateCursor :: Wise -> GameState -> GameState
+rotateCursor w gs = gs & board %~ rotateBoard w (gs ^. cursor)
+
 

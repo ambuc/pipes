@@ -4,6 +4,8 @@ import           Control.Monad (replicateM)
 import           Data.Array    (array)
 import qualified System.Random as Random
 
+import           Lens.Micro    ((%~), (&), (.~))
+
 import           Types
 
 someFunc :: IO ()
@@ -23,7 +25,7 @@ mkRandomTile = do
   random_enum <- Random.randomRIO (0, fromEnum (maxBound :: Shape))
   random_rot <- Random.randomRIO (0, 3)
   let tile = mkTile $ toEnum random_enum
-  let rotated_tile = iterate rotateCW tile !! random_rot
+  let rotated_tile = iterate (rotate CW) tile !! random_rot
   return rotated_tile
 
 mkEmptySquare :: Square
