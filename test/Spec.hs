@@ -8,31 +8,17 @@ import           Types
 
 main :: IO ()
 main = hspec $ do
-  describe "src/Types >> corpus" $ do
+  describe "src/Types >> DisplayTile >> corpus" $ do
     it "no-corpus-duplicates" $ repeated corpus `shouldBe` []
-    it "show-u-2500"          $ show (Tile Z A Z A) `shouldBe` "─"
-    it "show-u-2511"          $ show (Tile Z Z A B) `shouldBe` "┑"
-    it "show-u-2522"          $ show (Tile A B B Z) `shouldBe` "┢"
-    it "show-u-2533"          $ show (Tile Z B B B) `shouldBe` "┳"
-    it "show-u-2544"          $ show (Tile B B A A) `shouldBe` "╄"
-    it "show-u-2544"          $ show (Tile B B A A) `shouldBe` "╄"
-    it "show-u-2575"          $ show (Tile A Z Z Z) `shouldBe` "╵"
-    it "show-u-2516"          $ show (Tile B A Z Z) `shouldBe` "┖"
-    it "show-u-2527"          $ show (Tile A Z B A) `shouldBe` "┧"
-    it "show-u-2538"          $ show (Tile B A Z A) `shouldBe` "┸"
-    it "show-u-2549"          $ show (Tile B A B B) `shouldBe` "╉"
-    it "show-u-257A"          $ show (Tile Z B Z Z) `shouldBe` "╺"
-  describe "src/Types >> Tiles" $ do
-    it "tile-rotation-cw" $ do
-      let t = Tile Z B B A
-      show t `shouldBe` "┲"
-      show (rotate CW t) `shouldBe` "┪"
-    it "tile-rotation-ccw" $ do
-      let t = Tile A B A Z
-      show t `shouldBe` "┝"
-      show (rotate CCW t) `shouldBe` "┸"
-    it "tile-rotation-roundtrip" $ do
-      let t = Tile A B Z A
-      (rotate CW . rotate CW . rotate CW . rotate CW) t `shouldBe` t
-      (rotate CCW . rotate CCW . rotate CCW . rotate CCW) t `shouldBe` t
-
+    it "show-u-2500"          $ show (DisplayTile Z A Z A) `shouldBe` "─"
+    it "show-u-2511"          $ show (DisplayTile Z Z A B) `shouldBe` "┑"
+    it "show-u-2522"          $ show (DisplayTile A B B Z) `shouldBe` "┢"
+    it "show-u-2533"          $ show (DisplayTile Z B B B) `shouldBe` "┳"
+    it "show-u-2544"          $ show (DisplayTile B B A A) `shouldBe` "╄"
+    it "show-u-2544"          $ show (DisplayTile B B A A) `shouldBe` "╄"
+    it "show-u-2575"          $ show (DisplayTile A Z Z Z) `shouldBe` "╵"
+    it "show-u-2516"          $ show (DisplayTile B A Z Z) `shouldBe` "┖"
+    it "show-u-2527"          $ show (DisplayTile A Z B A) `shouldBe` "┧"
+    it "show-u-2538"          $ show (DisplayTile B A Z A) `shouldBe` "┸"
+    it "show-u-2549"          $ show (DisplayTile B A B B) `shouldBe` "╉"
+    it "show-u-257A"          $ show (DisplayTile Z B Z Z) `shouldBe` "╺"
