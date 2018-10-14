@@ -7,41 +7,43 @@ import qualified System.Random as Random
 import           Lens.Micro    ((%~), (&), (.~), (^.))
 
 import           Types
+import           Util
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
-
+-- @return a Tile of the given Shape.
 mkTile :: Shape -> Tile
-mkTile Blank    = Tile Z Z Z Z -- ' '
-mkTile Line     = Tile Z A Z A -- '─'
-mkTile Bend     = Tile A A Z Z -- '└'
-mkTile Tee      = Tile A A A Z -- '├'
-mkTile Cross    = Tile A A A A -- '┼'
-mkTile Culdesac = Tile A Z Z Z -- '╵'
+mkTile Blank    = Tile False False False False -- ' '
+mkTile Line     = Tile False True False True   -- '─'
+mkTile Bend     = Tile True True False False   -- '└'
+mkTile Tee      = Tile True True True False    -- '├'
+mkTile Cross    = Tile True True True True     -- '┼'
+mkTile Culdesac = Tile True False False False  -- '╵'
 
 -- TODO(ambuc): This could have a tile distribution.
+-- @return a random Tile at a random rotation.
 mkRandomTile :: IO Tile
 mkRandomTile = do
   random_enum <- Random.randomRIO (0, fromEnum (maxBound :: Shape))
-  random_rot <- Random.randomRIO (0, 3)
+  random_rot  <- Random.randomRIO (0, 3)
   let tile = mkTile $ toEnum random_enum
   let rotated_tile = iterate (rotate CW) tile !! random_rot
   return rotated_tile
 
+-- @return an empty Square.
 mkEmptySquare :: Square
-mkEmptySquare = Square {          _tile = Tile Z Z Z Z
-                       ,     _flowstate = NotFlowing
-                       , _flowdirection = Nothing
+mkEmptySquare = Square {        _tile = Tile False False False False
+                       , _displaytile = DisplayTile Z Z Z Z
+                       ,     _flowing = False
+                       ,     _visited = False
+                       ,   _hascursor = False
                        }
 
+-- @return a random Square.
 mkRandomSquare :: IO Square
 mkRandomSquare = do
   tile <- mkRandomTile
   return $ mkEmptySquare { _tile = tile }
 
-getBoardWidth = 20
-getBoardHeight = 10
-
+-- @return a shuffled Board.
 mkRandomBoard :: IO Board
 mkRandomBoard = do
   random_squares <- replicateM (w * h) mkRandomSquare
@@ -55,6 +57,7 @@ mkRandomBoard = do
     h = getBoardHeight
     w = getBoardWidth
 
+-- @return a random Border object with tap/drain locations.
 mkRandomBorder :: IO Border
 mkRandomBorder = do
   n <- Random.randomRIO (0, getBoardWidth-1)
@@ -63,11 +66,13 @@ mkRandomBorder = do
                 , _drainLocation = (getBoardHeight, m)
                 }
 
+-- @return the initial, shuffled GameState.
 mkState :: IO GameState
 mkState = do
   init_border <- mkRandomBorder
   init_board  <- mkRandomBoard
-  let init_cursor = (\(h,w) -> (h+1, w)) $ init_border ^. tapLocation
+  -- let init_cursor = (\(h,w) -> (h+1, w)) $ init_border ^. tapLocation
+  let init_cursor = (5,10)
   return GameState { _border = init_border
                    ,  _board = init_board
                    , _cursor = init_cursor

@@ -20,15 +20,19 @@ corpus = " ╵╹╶└┖╺┕┗╷│╿┌├┞┍┝┡╻╽┃┎┟┠
 
 data Fill = Z | A | B deriving (Show, Bounded, Ord, Eq, Enum) -- zilch, average, bold
 
-data Tile = Tile { _north :: Fill
-                 ,  _east :: Fill
-                 , _south :: Fill
-                 ,  _west :: Fill } deriving (Eq)
-instance Show Tile where
-  show (Tile n e w s) = [corpus !! (27 * fromEnum s
-                                   + 9 * fromEnum w
-                                   + 3 * fromEnum e
-                                   + 1 * fromEnum n)]
+data Tile = Tile { _north :: Bool
+                 ,  _east :: Bool
+                 , _south :: Bool
+                 ,  _west :: Bool } deriving (Eq)
+data DisplayTile = DisplayTile { _n :: Fill
+                               , _e :: Fill
+                               , _s :: Fill
+                               , _w :: Fill } deriving (Eq)
+instance Show DisplayTile where
+  show (DisplayTile n e w s) = [corpus !! (27 * fromEnum s
+                                          + 9 * fromEnum w
+                                          + 3 * fromEnum e
+                                          + 1 * fromEnum n)]
 data Wise = CW | CCW
 
 rotate :: Wise -> Tile -> Tile
@@ -43,14 +47,15 @@ data Shape = Blank | Line | Bend | Tee | Cross | Culdesac deriving (Show, Bounde
 -- d ┼        <=> ╋
 -- e ╴ ╵ ╶ ╷  <=> ╸ ╹ ╺ ╻
 
-data Dir    = N | E | W | S deriving (Show, Eq, Enum)
-data Flow   = NotFlowing | FlowingIn | FlowingOut deriving (Show, Eq)
-data Square = Square {          _tile :: Tile
-                     ,     _flowstate :: Flow       -- for animation
-                     , _flowdirection :: Maybe Dir  -- for animation
+data Dir       = N | E | W | S deriving (Show, Eq, Enum)
+data Square = Square {        _tile :: Tile
+                     , _displaytile :: DisplayTile
+                     ,     _flowing :: Bool
+                     ,     _visited :: Bool
+                     ,   _hascursor :: Bool
                      } deriving (Eq)
 instance Show Square where
-  show Square {_tile = t} = show t
+  show Square {_displaytile = dt} = show dt
 
 type Board = Array (Int, Int) Square
 
@@ -65,6 +70,7 @@ data GameState = GameState {  _board :: Board
 
 
 makeLenses ''Tile
+makeLenses ''DisplayTile
 makeLenses ''Square
 makeLenses ''Border
 makeLenses ''GameState

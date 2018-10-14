@@ -7,62 +7,79 @@ import           Brick.Types                (Widget)
 import           Brick.Widgets.Border       (borderWithLabel, vBorder)
 import           Brick.Widgets.Border.Style (unicode)
 import           Brick.Widgets.Center       (center)
-import           Brick.Widgets.Core         (hBox, hLimit, str, strWrapWith,
-                                             vBox, vLimit, withAttr,
-                                             withBorderStyle, (<+>), (<=>))
+import           Brick.Widgets.Core         (fill, hBox, hLimit, str,
+                                             strWrapWith, vBox, vLimit,
+                                             withAttr, withBorderStyle, (<+>),
+                                             (<=>))
 import           Data.Array                 (assocs, elems, (!))
 import           Text.Wrap
 
 import           Lens.Micro                 (ix, (&), (^.))
 
-import           Init                       (getBoardHeight, getBoardWidth)
 import           Types
+import           Util
 
+-- @return the rendered GameState.
 draw :: GameState -> [Widget Resource]
 draw gs = [ withBorderStyle unicode
-          $ center $ drawBoard gs <=> debugLine
+          $ center $ drawGameState gs <=> debugLine
           ]
   where
     debugLine = str $ show (gs ^. cursor)
 
-breakWords = defaultWrapSettings { breakLongWords = True }
-
--- /--+----\  <-- topBorder
--- |.......|
--- \-----+-/  <-- bottomBorder
-drawBoard :: GameState -> Widget Resource
-drawBoard gs = top_border
-           <=> hBox [left_border, drawPipes gs, right_border]
-           <=> bottom_border
+-- @return the rendered Board, containing the Border and pipes at the center.
+drawGameState :: GameState -> Widget Resource
+drawGameState gs = hBox [ corner_tl
+                        , border_line tap_x
+                        , tap
+                        , border_line (getBoardWidth - tap_x - 1)
+                        , corner_tr
+                        ]
+               <=> hBox [ border_col getBoardHeight
+                        , drawBoard (gs ^. board)
+                        , border_col getBoardHeight
+                        ]
+               <=> hBox [ corner_bl
+                        , border_line drain_x
+                        , drain
+                        , border_line (getBoardWidth - drain_x - 1)
+                        , corner_br
+                        ]
   where
-    top_border    = str $ "┏" ++ replicate tap_x '━' ++ "┳"
-                                 ++ replicate (w - tap_x - 1) '━' ++ "┓"
-    bottom_border = str $ "┗" ++ replicate drain_x '━' ++ "┻"
-                                 ++ replicate (w - drain_x - 1) '━' ++ "┛"
-    left_border   = hLimit 1 $ strWrapWith breakWords $ replicate h '┃'
-    right_border  = hLimit 1 $ strWrapWith breakWords $ replicate h '┃'
-    (_,   tap_x)   = gs ^. (border . tapLocation)
+    (_,   tap_x) = gs ^. (border . tapLocation)
     (_, drain_x) = gs ^. (border . drainLocation)
-    w = getBoardWidth
-    h = getBoardHeight
+    tap   = withAttr (attrName "fg-blue") $ str "┳"
+    drain = str "┻"
+    corner_tl = str "┏"
+    corner_tr = str "┓"
+    corner_bl = str "┗"
+    corner_br = str "┛"
+    border_line n = hLimit n $ vLimit 1 $ fill '━'
+    border_col  n = vLimit n $ hLimit 1 $ fill '┃'
 
 
-drawPipes :: GameState -> Widget Resource
-drawPipes gs = hLimit getBoardWidth
-             $ vLimit getBoardHeight
-             $ vBox $ map (drawRow gs) [0..getBoardHeight-1]
+-- @return the rendered Board.
+drawBoard :: Board -> Widget Resource
+drawBoard b = hLimit getBoardWidth
+            $ vLimit getBoardHeight
+            $ vBox $ map (drawRow b) [0..getBoardHeight-1]
+  where
+    -- @return the row at the given index.
+    drawRow :: Board -> Int -> Widget Resource
+    drawRow b h = hBox $ map (drawSquareAt b h) [0..getBoardWidth-1]
 
-drawRow :: GameState -> Int -> Widget Resource
-drawRow gs h = hBox $ map (drawSquare gs h) [0..getBoardWidth-1]
+    -- @return the square at the given coordinates.
+    drawSquareAt :: Board -> Int -> Int -> Widget Resource
+    drawSquareAt b h w = drawSquare $ b ! (h,w)
 
-drawSquare :: GameState -> Int -> Int -> Widget Resource
-drawSquare gs h w = drawTile (gs ^. cursor == (h,w)) t
-  where t = ((gs ^. board) ! (h,w)) ^. tile
-
--- the bool represents whether or not this tile currently has the cursor over it.
-drawTile :: Bool -> Tile -> Widget Resource
-drawTile True (Tile Z Z Z Z) = withAttr (attrName "fg-red") $ str "░"
-drawTile True t              = withAttr (attrName "fg-red") $ str $ show t
-drawTile False t             = str $ show t
+    -- @return the rendered Square.
+    drawSquare :: Square -> Widget Resource
+    drawSquare s@Square { _hascursor = True }
+      | s ^. tile == nullTile = withAttr (attrName "fg-red") $ str "░"
+      | otherwise             = withAttr (attrName "fg-red") $ str $ show (s ^. displaytile)
+    drawSquare s
+      | s ^. flowing = withAttr (attrName "fg-blue")
+                     $ str $ show (s ^. displaytile)
+      | otherwise    = str $ show (s ^. displaytile)
 
 
