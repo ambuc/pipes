@@ -14,7 +14,10 @@ corpus = " ╵╹╶└┖╺┕┗╷│╿┌├┞┍┝┡╻╽┃┎┟┠
 
 data Fill = Z | A | B deriving (Show, Bounded, Ord, Eq, Enum) -- zilch, average, bold
 
-data Tile = Tile { north :: Fill, east :: Fill, south :: Fill, west :: Fill } deriving (Eq)
+data Tile = Tile { north :: Fill
+                 ,  east :: Fill
+                 , south :: Fill
+                 ,  west :: Fill } deriving (Eq)
 instance Show Tile where
   show (Tile n e w s) = [corpus !! (27 * fromEnum s
                                    + 9 * fromEnum w
@@ -34,10 +37,10 @@ data Shape = Line | Bend | Tee | Cross | Culdesac deriving (Show, Bounded, Eq, E
 -- d ┼        <=> ╋
 -- e ╴ ╵ ╶ ╷  <=> ╸ ╹ ╺ ╻
 
-data Dir    = N | E | W | S deriving (Show, Eq)
+data Dir    = N | E | W | S deriving (Show, Eq, Enum)
 data Flow   = NotFlowing | FlowingIn | FlowingOut deriving (Show, Eq)
-data Square = Square { tile          :: Maybe Tile
-                     , flowstate     :: Flow       -- for animation
+data Square = Square {          tile :: Maybe Tile
+                     ,     flowstate :: Flow       -- for animation
                      , flowdirection :: Maybe Dir  -- for animation
                      } deriving (Eq)
 instance Show Square where
@@ -46,7 +49,11 @@ instance Show Square where
 
 type Board = Array (Int, Int) Square
 
+data Border = Border {   tapLocation :: Int
+                     , drainLocation :: Int
+                     } deriving (Show)
 
-data GameState = GameState { board  :: Board
+data GameState = GameState {  board :: Board
+                           , border :: Border
                            } deriving (Show)
 

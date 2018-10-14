@@ -50,7 +50,18 @@ mkRandomBoard = do
     h = getBoardHeight
     w = getBoardWidth
 
+mkRandomBorder :: IO Border
+mkRandomBorder = do
+  n <- Random.randomRIO (0, getBoardWidth)
+  m <- Random.randomRIO (0, getBoardWidth)
+  return Border {   tapLocation = n
+                , drainLocation = m
+                }
+
 mkState :: IO GameState
 mkState = do
-  board <- mkRandomBoard
-  return GameState { board = board }
+  random_border <- mkRandomBorder
+  random_board <- mkRandomBoard
+  return GameState { border = random_border
+                   ,  board = random_board
+                   }
