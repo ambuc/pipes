@@ -20,7 +20,7 @@ recomputeFlow gs = if entry_is_connected
                      then trickleFrom 0 entry_xy gs
                      else gs
   where
-    entry_is_connected = gs ^. board ^?! ix entry_xy . tile . north
+    entry_is_connected = gs ^. board ^?! ix entry_xy . tile . tN
     entry_xy = (\(h,w) -> (h+1, w)) $ gs ^. border . tapLocation
 
     -- @return the given GameState, with all Squares adjacent to the the Square
@@ -29,8 +29,8 @@ recomputeFlow gs = if entry_is_connected
     trickleFrom n (h,w) gs = if n >= 100 || gs ^. board ^?! ix (h,w) . visited
                                then gs
                                else exploreNeighbors n (h,w)
-                                    $ board . ix (h,w) . visited .~ True
-                                    $ board . ix (h,w) . flowing .~ True
+                                    $ board . ix (h,w) . visited   .~ True
+                                    $ board . ix (h,w) . connected .~ True
                                     $ gs
       where
         -- @return the given Gamestate, with all adjacent squares explored.
@@ -56,7 +56,7 @@ recomputeCursor gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
 -- @return the given GameState, with all rendering artifacts cleared.
 resetAll :: GameState -> GameState
 resetAll gs = gs & board . each . hascursor   .~ False
-                 & board . each . flowing     .~ False
+                 & board . each . connected   .~ False
                  & board . each . visited     .~ False
                  & board . each . displaytile .~ DisplayTile Z Z Z Z
 

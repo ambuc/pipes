@@ -75,8 +75,8 @@ drawBoard b = hLimit getBoardWidth
       | s ^. tile == nullTile = withAttr (attrName "fg-red") $ str "░"
       | otherwise             = withAttr (attrName "fg-red") $ str $ show (s ^. displaytile)
     drawSquare s
-      | s ^. flowing = withAttr (attrName "fg-blue")
-                     $ str $ show (s ^. displaytile)
-      | otherwise    = str $ show (s ^. displaytile)
+      | s ^. connected = withAttr (attrName "fg-blue")
+                       $ str $ show (s ^. displaytile)
+      | otherwise      = str $ show (s ^. displaytile)
 
 

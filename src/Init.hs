@@ -22,7 +22,8 @@ mkTile Culdesac = Tile True  False False False  -- '╵'
 mkEmptySquare :: Square
 mkEmptySquare = Square {        _tile = nullTile
                        , _displaytile = DisplayTile Z Z Z Z
-                       ,     _flowing = False
+                       ,   _connected = False
+                       ,        _flow = Nothing
                        ,     _visited = False
                        ,   _hascursor = False
                        }

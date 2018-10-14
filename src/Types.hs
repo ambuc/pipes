@@ -14,6 +14,15 @@ data Wise   = CW | CCW
 
 data Dir    = N | E | W | S
 
+data FlowDirection = In | Out
+
+data Flow = Flow { _flowN :: FlowDirection
+                 , _flowE :: FlowDirection
+                 , _flowW :: FlowDirection
+                 , _flowS :: FlowDirection
+                 ,  _dist :: Int
+                 }
+
 corpus :: String
 -- N      012012012012012012012012012012012012012012012012012012012012012012012012012012012
 -- E      0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--
@@ -24,16 +33,16 @@ corpus = " ╵╹╶└┖╺┕┗╷│╿┌├┞┍┝┡╻╽┃┎┟┠
 data Fill = Z | A | B
   deriving (Bounded, Enum) -- zilch, average, bold
 
-data Tile = Tile { _north :: Bool
-                 ,  _east :: Bool
-                 , _south :: Bool
-                 ,  _west :: Bool }
+data Tile = Tile { _tN :: Bool
+                 , _tE :: Bool
+                 , _tS :: Bool
+                 , _tW :: Bool }
   deriving (Eq)
 
-data DisplayTile = DisplayTile { _n :: Fill
-                               , _e :: Fill
-                               , _s :: Fill
-                               , _w :: Fill }
+data DisplayTile = DisplayTile { _dtN :: Fill
+                               , _dtE :: Fill
+                               , _dtS :: Fill
+                               , _dtW :: Fill }
 
 instance Show DisplayTile where
   show (DisplayTile n e w s) = [corpus !! (27 * fromEnum s
@@ -47,7 +56,8 @@ data Shape  = Blank | Line | Bend | Tee | Cross | Culdesac
 
 data Square = Square {        _tile :: Tile
                      , _displaytile :: DisplayTile
-                     ,     _flowing :: Bool
+                     ,   _connected :: Bool
+                     ,        _flow :: Maybe Flow
                      ,     _visited :: Bool
                      ,   _hascursor :: Bool
                      }

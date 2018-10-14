@@ -30,11 +30,11 @@ nullTile = Tile False False False False
 
 -- @return the Square with its DisplayTile updated to reflect the other associated data.
 makeDisplayTile :: Square -> Square
-makeDisplayTile s = s & displaytile .~ d_t
-  where d_t = DisplayTile { _n = if s ^. tile ^. north then A else Z
-                          , _e = if s ^. tile ^.  east then A else Z
-                          , _w = if s ^. tile ^.  west then A else Z
-                          , _s = if s ^. tile ^. south then A else Z
+makeDisplayTile sq = sq & displaytile .~ d_t
+  where d_t = DisplayTile { _dtN = if sq ^. tile ^. tN then A else Z
+                          , _dtE = if sq ^. tile ^. tE then A else Z
+                          , _dtW = if sq ^. tile ^. tW then A else Z
+                          , _dtS = if sq ^. tile ^. tS then A else Z
                           }
 
 --
@@ -60,7 +60,7 @@ canReach board xy dir = inBounds adj_xy
 
 -- @return whether or not the two argument tiles share an interface.
 canReach' :: Tile -> Tile -> Dir -> Bool
-canReach' t t' N = t ^. north && t' ^. south
-canReach' t t' S = t ^. south && t' ^. north
-canReach' t t' W = t ^.  west && t' ^.  east
-canReach' t t' E = t ^.  east && t' ^.  west
+canReach' t t' N = t ^. tN && t' ^. tS
+canReach' t t' S = t ^. tS && t' ^. tN
+canReach' t t' W = t ^. tW && t' ^. tE
+canReach' t t' E = t ^. tE && t' ^. tW
