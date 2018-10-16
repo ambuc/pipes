@@ -67,7 +67,7 @@ controlThread delay chan = forever $ do
 main :: IO ()
 main = do
   chan <- newBChan 10
-  delayVar <- atomically $ newTVar 100000
+  delayVar <- atomically $ newTVar 75000
   void $ forkIO $ controlThread delayVar chan
 
   let init_vty = V.mkVty =<< V.standardIOConfig

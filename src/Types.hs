@@ -19,7 +19,6 @@ data Flow = Flow { _flowN :: FlowDirection
                  , _flowE :: FlowDirection
                  , _flowW :: FlowDirection
                  , _flowS :: FlowDirection
-                 ,  _dist :: Int
                  }
 
 corpus :: String
@@ -55,9 +54,8 @@ data Shape  = Blank | Line | Bend | Tee | Cross | Culdesac
 
 data Square = Square {        _tile :: Tile
                      , _displaytile :: DisplayTile
-                     ,   _connected :: Bool
                      ,        _flow :: Maybe Flow
-                     ,     _visited :: Bool
+                     ,    _distance :: Maybe Int
                      ,   _hascursor :: Bool
                      }
 
@@ -76,6 +74,7 @@ data GameState = GameState {  _board :: Board
                            ,   _time :: Int
                            }
 
+makeLenses ''Flow
 makeLenses ''Tile
 makeLenses ''DisplayTile
 makeLenses ''Square

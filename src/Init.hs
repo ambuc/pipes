@@ -22,9 +22,8 @@ mkTile Culdesac = Tile True  False False False  -- '╵'
 mkEmptySquare :: Square
 mkEmptySquare = Square {        _tile = nullTile
                        , _displaytile = DisplayTile Z Z Z Z
-                       ,   _connected = False
                        ,        _flow = Nothing
-                       ,     _visited = False
+                       ,    _distance = Nothing
                        ,   _hascursor = False
                        }
 
@@ -72,8 +71,7 @@ mkState :: IO GameState
 mkState = do
   init_border <- mkRandomBorder
   init_board  <- mkRandomBoard
-  -- let init_cursor = (\(h,w) -> (h+1, w)) $ init_border ^. tapLocation
-  let init_cursor = (5,10)
+  let init_cursor = (\(h,w) -> (h+1, w)) $ init_border ^. tapLocation
   return GameState { _border = init_border
                    ,  _board = init_board
                    , _cursor = init_cursor

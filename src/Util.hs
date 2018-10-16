@@ -16,6 +16,22 @@ getBoardHeight = 10
 inBounds :: (Int, Int) -> Bool
 inBounds (h,w) = h >= 0 && h < getBoardHeight && w >= 0 && w < getBoardWidth
 
+
+--
+-- FLOW
+--
+
+-- N E W S
+addFlowFrom :: Dir -> Maybe Flow -> Maybe Flow
+addFlowFrom N Nothing               = Just $ Flow In Out Out Out
+addFlowFrom E Nothing               = Just $ Flow Out In Out Out
+addFlowFrom W Nothing               = Just $ Flow Out Out In Out
+addFlowFrom S Nothing               = Just $ Flow Out Out Out In
+addFlowFrom N (Just (Flow _ b c d)) = Just $ Flow In b c d
+addFlowFrom E (Just (Flow a _ c d)) = Just $ Flow a In c d
+addFlowFrom W (Just (Flow a b _ d)) = Just $ Flow a b In d
+addFlowFrom S (Just (Flow a b c _)) = Just $ Flow a b c In
+
 --
 -- TILES / DISPLAYTILES
 --
@@ -28,18 +44,33 @@ rotate CCW (Tile a b c d) = Tile b c d a
 -- @return the canonical empty Tile.
 nullTile = Tile False False False False
 
--- @return the Square with its DisplayTile updated to reflect the other associated data.
-makeDisplayTile :: Square -> Square
-makeDisplayTile sq = sq & displaytile .~ d_t
-  where d_t = DisplayTile { _dtN = if sq ^. tile ^. tN then A else Z
-                          , _dtE = if sq ^. tile ^. tE then A else Z
-                          , _dtW = if sq ^. tile ^. tW then A else Z
-                          , _dtS = if sq ^. tile ^. tS then A else Z
-                          }
+mkPlainTile :: Tile -> DisplayTile
+mkPlainTile (Tile a b c d) = DisplayTile (if a then A else Z)
+                                         (if b then A else Z)
+                                         (if c then A else Z)
+                                         (if d then A else Z)
+mkBoldTile :: Tile -> DisplayTile
+mkBoldTile (Tile a b c d) = DisplayTile (if a then B else Z)
+                                        (if b then B else Z)
+                                        (if c then B else Z)
+                                        (if d then B else Z)
 
---
--- ADJACENCY LOGIC
---
+mkWaterTile :: Int -> Int-> Tile -> DisplayTile
+mkWaterTile time d t
+  | time `mod` 20 == d `mod` 20  = mkBoldTile t
+  | otherwise                    = mkPlainTile t
+
+mkDisplayTile :: Int -> Square -> DisplayTile
+mkDisplayTile t (sq @ Square { _distance = Nothing }) = mkPlainTile (sq ^. tile)
+mkDisplayTile t (sq @ Square { _distance = Just d  }) = mkWaterTile t d (sq ^. tile)
+
+-- @return the Square with its DisplayTile updated to reflect the other associated data.
+setDisplayTile :: Int -> Square -> Square
+setDisplayTile c sq = sq & displaytile .~ mkDisplayTile c sq
+
+--------- --------- --------- --------- --------- --------- --------- ---------
+-- ADJACENCY LOGIC  --------- --------- --------- --------- --------- ---------
+--------- --------- --------- --------- --------- --------- --------- ---------
 
 -- @return the coordinates adjacent to the input coordinate in the given
 --         direction.

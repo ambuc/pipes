@@ -71,12 +71,9 @@ drawBoard b = hLimit getBoardWidth
 
     -- @return the rendered Square.
     drawSquare :: Square -> Widget ()
-    drawSquare s@Square { _hascursor = True }
-      | s ^. tile == nullTile = withAttr (attrName "fg-red") $ str "░"
-      | otherwise             = withAttr (attrName "fg-red") $ str $ show (s ^. displaytile)
-    drawSquare s
-      | s ^. connected = withAttr (attrName "fg-blue")
-                       $ str $ show (s ^. displaytile)
-      | otherwise      = str $ show (s ^. displaytile)
+    drawSquare (s @ Square { _hascursor = True, _tile = Tile False False False False }) = withAttr (attrName "fg-red")  $ str "░"
+    drawSquare (s @ Square { _hascursor = True                                       }) = withAttr (attrName "fg-red")  $ str $ show (s ^. displaytile)
+    drawSquare (s @ Square { _distance = Nothing                                     }) =                                 str $ show (s ^. displaytile)
+    drawSquare (s @ Square { _distance = Just n                                      }) = withAttr (attrName "fg-blue") $ str $ show (s ^. displaytile)
 
 

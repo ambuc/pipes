@@ -3,6 +3,7 @@ module Compute
     , incrementTime
     ) where
 
+import           Data.Maybe     (isJust)
 import           Lens.Micro     ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC (each, ix)
 
@@ -10,15 +11,15 @@ import           Types
 import           Util
 
 incrementTime :: GameState -> GameState
-incrementTime gs = gs & time %~ succ
-
+incrementTime gs = recomputeDisplays
+                 $ gs & time %~ succ
 
 -- @return the given GameState, with all DisplayTiles re-rendered as a
 --         function of their respective Squares.
 recomputeDisplays :: GameState -> GameState
-recomputeDisplays gs = gs & board . each %~ makeDisplayTile
+recomputeDisplays gs = gs & board . each %~ setDisplayTile (gs ^. time)
 
--- @return the given GameState, with all _visited and _flowstate fields updated
+-- @return the given GameState, with all _flowstate fields updated
 --         to reflect the new connectivity graph.
 recomputeFlow :: GameState -> GameState
 recomputeFlow gs = gs & board %~ (if entry_is_connected
@@ -31,29 +32,31 @@ recomputeFlow gs = gs & board %~ (if entry_is_connected
     -- @return the given Board, with all Squares adjacent to the the Square
     --         at the input coordinates explored / colored in.
     trickleFrom :: Int -> Dir -> (Int, Int) -> Board -> Board
-    trickleFrom n dir (h,w) b = if n >= 100 || b ^?! ix (h,w) . visited
-                                   then b
-                                   else exploreNeighbors n (h,w)
-                                        $ ix (h,w) . visited   .~ True
-                                        $ ix (h,w) . connected .~ True
-                                        $ ix (h,w) . flow .~ Just (Flow In Out Out Out n)
-                                        $ b
+    trickleFrom dist dir (h,w) b = if shouldVisit
+                                     then b
+                                     else exploreNeighbors dist (h,w)
+                                          $ ix (h,w) . flow %~ addFlowFrom dir
+                                          $ ix (h,w) . distance .~ Just dist
+                                          $ b
       where
+        shouldVisit = (dist >= 200)
+                   || ( isJust (b ^?! ix (h,w) . distance)
+                             && b ^?! ix (h,w) . distance <= Just dist
+                      )
         -- @return the given Board, with all adjacent squares explored.
         exploreNeighbors :: Int -> (Int, Int) -> Board -> Board
-        exploreNeighbors n loc b = exploreDir N n loc
-                                 $ exploreDir E n loc
-                                 $ exploreDir S n loc
-                                 $ exploreDir W n loc
-                                 b
+        exploreNeighbors dist loc b = exploreDir N dist loc
+                                    $ exploreDir E dist loc
+                                    $ exploreDir S dist loc
+                                    $ exploreDir W dist loc
+                                    b
           where
             -- @return the given Board, with the adjacent square in the
             --         given direction tested for connectivity / colored in.
             exploreDir :: Dir -> Int -> (Int, Int) -> Board -> Board
-            exploreDir dir n loc b = if canReach b loc dir
-                                        then trickleFrom (succ n) dir (adj dir loc) b
+            exploreDir dir dist loc b = if canReach b loc dir
+                                        then trickleFrom (succ dist) dir (adj dir loc) b
                                         else b
-
 
 -- @return the given GameState, with the location of the cursor set.
 recomputeCursor :: GameState -> GameState
@@ -63,8 +66,7 @@ recomputeCursor gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
 -- @return the given GameState, with all rendering artifacts cleared.
 resetAll :: GameState -> GameState
 resetAll gs = gs & board . each . hascursor   .~ False
-                 & board . each . connected   .~ False
-                 & board . each . visited     .~ False
+                 & board . each . distance    .~ Nothing
                  & board . each . displaytile .~ DisplayTile Z Z Z Z
                  & board . each . flow        .~ Nothing
 
