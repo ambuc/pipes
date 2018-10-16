@@ -9,8 +9,6 @@ import           Lens.Micro.TH (makeLenses)
 
 data Tick = Tick
 
-data Wise   = CW | CCW
-
 data Dir    = N | E | W | S
 
 data FlowDirection = In | Out

@@ -20,6 +20,7 @@ import           System.Random               as R
 import           Actions
 import           Compute
 import           Init
+import           Magic
 import           Types
 import           UI
 
@@ -38,7 +39,7 @@ appEvent s (VtyEvent (V.EvKey (V.KChar 'w') [])) = continue $ recomputeState $ m
 appEvent s (VtyEvent (V.EvKey (V.KChar 's') [])) = continue $ recomputeState $ move S s
 appEvent s (VtyEvent (V.EvKey (V.KChar 'a') [])) = continue $ recomputeState $ move W s
 appEvent s (VtyEvent (V.EvKey (V.KChar 'd') [])) = continue $ recomputeState $ move E s
-appEvent s (VtyEvent (V.EvKey (V.KChar ' ') [])) = continue $ recomputeState $ rotateCursor CW s
+appEvent s (VtyEvent (V.EvKey (V.KChar ' ') [])) = continue $ recomputeState $ rotateCursor s
 appEvent s _                                     = continue $ recomputeState s
 
 aMap :: AttrMap
@@ -66,8 +67,8 @@ controlThread delay chan = forever $ do
 
 main :: IO ()
 main = do
-  chan <- newBChan 10
-  delayVar <- atomically $ newTVar 75000
+  chan <- newBChan getBChanQueueLength
+  delayVar <- atomically $ newTVar getFrameRate
   void $ forkIO $ controlThread delayVar chan
 
   let init_vty = V.mkVty =<< V.standardIOConfig

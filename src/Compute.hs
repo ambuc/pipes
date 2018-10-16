@@ -7,6 +7,7 @@ import           Data.Maybe     (isJust)
 import           Lens.Micro     ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC (each, ix)
 
+import           Magic
 import           Types
 import           Util
 
@@ -39,7 +40,7 @@ recomputeFlow gs = gs & board %~ (if entry_is_connected
                                           $ ix (h,w) . distance .~ Just dist
                                           $ b
       where
-        shouldVisit = (dist >= 200)
+        shouldVisit = (dist >= getMaxExploreDist)
                    || ( isJust (b ^?! ix (h,w) . distance)
                              && b ^?! ix (h,w) . distance <= Just dist
                       )

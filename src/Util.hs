@@ -3,14 +3,13 @@ module Util where
 import           Lens.Micro     ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC (each, ix)
 
+import           Magic
 import           Types
 
 --
 -- BOARD
 --
 
-getBoardWidth = 20
-getBoardHeight = 10
 
 -- @return whether or not the input coordinate is within the game board
 inBounds :: (Int, Int) -> Bool
@@ -36,9 +35,7 @@ addFlowFrom S (Just (Flow a b c _)) = Just $ Flow a b c In
 --
 
 -- @return a rotated Tile
-rotate :: Wise -> Tile -> Tile -- NEWS
-rotate CW  Tile { _tN = n, _tE = e, _tS = s, _tW = w} = Tile { _tN = w, _tE = n, _tS = e, _tW = s}
-rotate CCW Tile { _tN = n, _tE = e, _tS = s, _tW = w} = Tile { _tN = e, _tE = s, _tS = w, _tW = n}
+rotate Tile { _tN = n, _tE = e, _tS = s, _tW = w} = Tile { _tN = w, _tE = n, _tS = e, _tW = s}
 
 -- @return the canonical empty Tile.
 nullTile = Tile False False False False
@@ -72,10 +69,12 @@ mkOutflowTile (Flow fn fe fw fs) (Tile n e w s) = DisplayTile (mkOutFill fn n) (
 
 mkWaterTile :: Int -> Int -> Flow -> Tile -> DisplayTile
 mkWaterTile time d f tile
-  | (time `mod` 20) - 1 == (d `mod` 10)  =  mkInflowTile f tile
-  | (time `mod` 20) + 0 == (d `mod` 10)  =      mkBoldTile tile
-  | (time `mod` 20) + 1 == (d `mod` 10)  = mkOutflowTile f tile
-  | otherwise                            =   mkPlainTile tile
+  | (time `mod` sr) == (d + 0 `mod` sr) =  mkInflowTile f tile
+  | (time `mod` sr) == (d + 1 `mod` sr) =    mkBoldTile tile
+  | (time `mod` sr) == (d + 2 `mod` sr) =    mkBoldTile tile
+  | (time `mod` sr) == (d + 3 `mod` sr) = mkOutflowTile f tile
+  | otherwise                           =   mkPlainTile tile
+  where sr = getSyncRate
 
 mkDisplayTile :: Int -> Square -> DisplayTile
 mkDisplayTile t (sq @ Square { _distance = Nothing                  }) = mkPlainTile (sq ^. tile)

@@ -5,6 +5,7 @@ import           Data.Array     ((!), (//))
 import           Lens.Micro     ((%~), (&), (^.), (^?!))
 import           Lens.Micro.GHC (each, ix)
 
+import           Magic
 import           Types
 import           Util
 
@@ -15,7 +16,7 @@ move dir gs = gs & cursor %~ adj dir
 
 -- @return the argument GameState, with the Tile under the Cursor rotated in
 --         the given rotational direction.
-rotateCursor :: Wise -> GameState -> GameState
-rotateCursor w gs = gs & board . ix (gs ^. cursor) . tile %~ rotate w
+rotateCursor :: GameState -> GameState
+rotateCursor gs = gs & board . ix (gs ^. cursor) . tile %~ rotate
 
 

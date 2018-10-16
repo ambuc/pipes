@@ -6,6 +6,7 @@ import qualified System.Random as Random
 
 import           Lens.Micro    ((%~), (&), (.~), (^.))
 
+import           Magic
 import           Types
 import           Util
 
@@ -63,7 +64,7 @@ mkRandomBoard = do
           random_enum <- Random.randomRIO (0, fromEnum (maxBound :: Shape))
           random_rot  <- Random.randomRIO (0, 3)
           let tile = mkTile $ toEnum random_enum
-          let rotated_tile = iterate (rotate CW) tile !! random_rot
+          let rotated_tile = iterate rotate tile !! random_rot
           return rotated_tile
 
 -- @return the initial, shuffled GameState.

@@ -13,6 +13,7 @@ import           Data.Array                 ((!))
 
 import           Lens.Micro                 ((^.))
 
+import           Magic
 import           Types
 import           Util
 
