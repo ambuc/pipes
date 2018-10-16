@@ -16,7 +16,6 @@ getBoardHeight = 10
 inBounds :: (Int, Int) -> Bool
 inBounds (h,w) = h >= 0 && h < getBoardHeight && w >= 0 && w < getBoardWidth
 
-
 --
 -- FLOW
 --
@@ -37,32 +36,51 @@ addFlowFrom S (Just (Flow a b c _)) = Just $ Flow a b c In
 --
 
 -- @return a rotated Tile
-rotate :: Wise -> Tile -> Tile
-rotate CW (Tile a b c d)  = Tile d a b c
-rotate CCW (Tile a b c d) = Tile b c d a
+rotate :: Wise -> Tile -> Tile -- NEWS
+rotate CW  Tile { _tN = n, _tE = e, _tS = s, _tW = w} = Tile { _tN = w, _tE = n, _tS = e, _tW = s}
+rotate CCW Tile { _tN = n, _tE = e, _tS = s, _tW = w} = Tile { _tN = e, _tE = s, _tS = w, _tW = n}
 
 -- @return the canonical empty Tile.
 nullTile = Tile False False False False
 
 mkPlainTile :: Tile -> DisplayTile
-mkPlainTile (Tile a b c d) = DisplayTile (if a then A else Z)
-                                         (if b then A else Z)
-                                         (if c then A else Z)
-                                         (if d then A else Z)
+mkPlainTile (Tile n e w s) = DisplayTile (if n then A else Z)
+                                         (if e then A else Z)
+                                         (if w then A else Z)
+                                         (if s then A else Z)
 mkBoldTile :: Tile -> DisplayTile
-mkBoldTile (Tile a b c d) = DisplayTile (if a then B else Z)
-                                        (if b then B else Z)
-                                        (if c then B else Z)
-                                        (if d then B else Z)
+mkBoldTile (Tile n e w s) = DisplayTile (if n then B else Z)
+                                        (if e then B else Z)
+                                        (if w then B else Z)
+                                        (if s then B else Z)
 
-mkWaterTile :: Int -> Int-> Tile -> DisplayTile
-mkWaterTile time d t
-  | time `mod` 20 == d `mod` 20  = mkBoldTile t
-  | otherwise                    = mkPlainTile t
+mkInFill :: FlowDirection -> Bool -> Fill
+mkInFill flow_dir False = Z
+mkInFill In       True  = B
+mkInFill Out      True  = A
+
+mkOutFill :: FlowDirection -> Bool -> Fill
+mkOutFill flow_dir False = Z
+mkOutFill In       True  = A
+mkOutFill Out      True  = B
+
+mkInflowTile :: Flow -> Tile -> DisplayTile
+mkInflowTile (Flow fn fe fw fs) (Tile n e w s) = DisplayTile (mkInFill fn n) (mkInFill fe e) (mkInFill fw w) (mkInFill fs s)
+
+mkOutflowTile :: Flow -> Tile -> DisplayTile
+mkOutflowTile (Flow fn fe fw fs) (Tile n e w s) = DisplayTile (mkOutFill fn n) (mkOutFill fe e) (mkOutFill fw w) (mkOutFill fs s)
+
+mkWaterTile :: Int -> Int -> Flow -> Tile -> DisplayTile
+mkWaterTile time d f tile
+  | (time `mod` 20) - 1 == (d `mod` 10)  =  mkInflowTile f tile
+  | (time `mod` 20) + 0 == (d `mod` 10)  =      mkBoldTile tile
+  | (time `mod` 20) + 1 == (d `mod` 10)  = mkOutflowTile f tile
+  | otherwise                            =   mkPlainTile tile
 
 mkDisplayTile :: Int -> Square -> DisplayTile
-mkDisplayTile t (sq @ Square { _distance = Nothing }) = mkPlainTile (sq ^. tile)
-mkDisplayTile t (sq @ Square { _distance = Just d  }) = mkWaterTile t d (sq ^. tile)
+mkDisplayTile t (sq @ Square { _distance = Nothing                  }) = mkPlainTile (sq ^. tile)
+mkDisplayTile t (sq @ Square { _distance = Just d  , _flow = Just f }) = mkWaterTile t d f (sq ^. tile)
+mkDisplayTile t sq = mkPlainTile (sq ^. tile)
 
 -- @return the Square with its DisplayTile updated to reflect the other associated data.
 setDisplayTile :: Int -> Square -> Square

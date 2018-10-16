@@ -10,11 +10,11 @@ import           Types
 import           Util
 
 -- @return a Tile of the given Shape.
-mkTile :: Shape -> Tile
+mkTile :: Shape -> Tile -- N E W S
 mkTile Blank    = Tile False False False False  -- ' '
-mkTile Line     = Tile False True  False True   -- '─'
+mkTile Line     = Tile False True  True  False   -- '─'
 mkTile Bend     = Tile True  True  False False  -- '└'
-mkTile Tee      = Tile True  True  True  False  -- '├'
+mkTile Tee      = Tile True  True  False True  -- '├'
 mkTile Cross    = Tile True  True  True  True   -- '┼'
 mkTile Culdesac = Tile True  False False False  -- '╵'
 

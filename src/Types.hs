@@ -33,18 +33,20 @@ data Fill = Z | A | B
 
 data Tile = Tile { _tN :: Bool
                  , _tE :: Bool
+                 , _tW :: Bool
                  , _tS :: Bool
-                 , _tW :: Bool }
-  deriving (Eq)
+                 }
+  deriving (Eq, Show)
 
 data DisplayTile = DisplayTile { _dtN :: Fill
                                , _dtE :: Fill
+                               , _dtW :: Fill
                                , _dtS :: Fill
-                               , _dtW :: Fill }
+                               }
 
 instance Show DisplayTile where
-  show (DisplayTile n e w s) = [corpus !! (27 * fromEnum s
-                                          + 9 * fromEnum w
+  show (DisplayTile n e w s) = [corpus !! (27 * fromEnum w
+                                          + 9 * fromEnum s
                                           + 3 * fromEnum e
                                           + 1 * fromEnum n)]
 
