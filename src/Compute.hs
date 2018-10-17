@@ -12,13 +12,7 @@ import           Types
 import           Util
 
 incrementTime :: GameState -> GameState
-incrementTime gs = recomputeDisplays
-                 $ gs & time %~ succ
-
--- @return the given GameState, with all DisplayTiles re-rendered as a
---         function of their respective Squares.
-recomputeDisplays :: GameState -> GameState
-recomputeDisplays gs = gs & board . each %~ setDisplayTile (gs ^. time)
+incrementTime gs = gs & time %~ succ
 
 -- @return the given GameState, with all _flowstate fields updated
 --         to reflect the new connectivity graph.
@@ -27,7 +21,8 @@ recomputeFlow gs = gs & board %~ (if entry_is_connected
                                     then trickleFrom 0 N entry_xy
                                     else id)
   where
-    entry_is_connected = gs ^. board ^?! ix entry_xy . tile . tN
+    (tN, _, _, _) = gs ^. board ^?! ix entry_xy . tile
+    entry_is_connected = tN
     entry_xy = (\(h,w) -> (h+1, w)) $ gs ^. border . tapLocation
 
     -- @return the given Board, with all Squares adjacent to the the Square
@@ -68,14 +63,12 @@ recomputeCursor gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
 resetAll :: GameState -> GameState
 resetAll gs = gs & board . each . hascursor   .~ False
                  & board . each . distance    .~ Nothing
-                 & board . each . displaytile .~ DisplayTile Z Z Z Z
                  & board . each . flow        .~ Nothing
 
 -- @return the given GameState, with all visual elements re-rendered as a
 --         function of the current cursor / tile configuration.
 recomputeState :: GameState -> GameState
-recomputeState = recomputeDisplays
-               . recomputeCursor
+recomputeState = recomputeCursor
                . recomputeFlow
                . resetAll
 

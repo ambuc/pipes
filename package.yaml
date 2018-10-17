@@ -22,14 +22,14 @@ description:         Please see the README on GitHub at <https://github.com/ambu
 dependencies:
 - array >= 0.5.2.0
 - base >= 4.7 && < 5
-- word-wrap >= 0.4.1
-- microlens >= 0.4.9.1
-- microlens-th >= 0.4.2.3
-- microlens-ghc >= 0.4.9.1
 - brick >= 0.41.2
-- stm >= 2.4.5.1
+- microlens >= 0.4.9.1
+- microlens-ghc >= 0.4.9.1
+- microlens-th >= 0.4.2.3
 - random >= 1.1
+- stm >= 2.4.5.1
 - vty >= 5.24
+- word-wrap >= 0.4.1
 
 library:
   source-dirs: src

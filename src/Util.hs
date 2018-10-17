@@ -21,69 +21,25 @@ inBounds (h,w) = h >= 0 && h < getBoardHeight && w >= 0 && w < getBoardWidth
 
 -- N E W S
 addFlowFrom :: Dir -> Maybe Flow -> Maybe Flow
-addFlowFrom N Nothing               = Just $ Flow In Out Out Out
-addFlowFrom E Nothing               = Just $ Flow Out In Out Out
-addFlowFrom W Nothing               = Just $ Flow Out Out In Out
-addFlowFrom S Nothing               = Just $ Flow Out Out Out In
-addFlowFrom N (Just (Flow _ b c d)) = Just $ Flow In b c d
-addFlowFrom E (Just (Flow a _ c d)) = Just $ Flow a In c d
-addFlowFrom W (Just (Flow a b _ d)) = Just $ Flow a b In d
-addFlowFrom S (Just (Flow a b c _)) = Just $ Flow a b c In
+addFlowFrom N Nothing             = Just (In,  Out, Out, Out)
+addFlowFrom E Nothing             = Just (Out,  In, Out, Out)
+addFlowFrom W Nothing             = Just (Out, Out,  In, Out)
+addFlowFrom S Nothing             = Just (Out, Out, Out,  In)
+addFlowFrom N (Just (_, b, c, d)) = Just ( In,   b,   c,   d)
+addFlowFrom E (Just (a, _, c, d)) = Just (  a,  In,   c,   d)
+addFlowFrom W (Just (a, b, _, d)) = Just (  a,   b,  In,   d)
+addFlowFrom S (Just (a, b, c, _)) = Just (  a,   b,   c,  In)
 
 --
 -- TILES / DISPLAYTILES
 --
 
 -- @return a rotated Tile
-rotate Tile { _tN = n, _tE = e, _tS = s, _tW = w} = Tile { _tN = w, _tE = n, _tS = e, _tW = s}
+rotate (n, e, w, s) = (w, n, s, e)
 
 -- @return the canonical empty Tile.
-nullTile = Tile False False False False
+nullTile = (False, False, False, False)
 
-mkPlainTile :: Tile -> DisplayTile
-mkPlainTile (Tile n e w s) = DisplayTile (if n then A else Z)
-                                         (if e then A else Z)
-                                         (if w then A else Z)
-                                         (if s then A else Z)
-mkBoldTile :: Tile -> DisplayTile
-mkBoldTile (Tile n e w s) = DisplayTile (if n then B else Z)
-                                        (if e then B else Z)
-                                        (if w then B else Z)
-                                        (if s then B else Z)
-
-mkInFill :: FlowDirection -> Bool -> Fill
-mkInFill flow_dir False = Z
-mkInFill In       True  = B
-mkInFill Out      True  = A
-
-mkOutFill :: FlowDirection -> Bool -> Fill
-mkOutFill flow_dir False = Z
-mkOutFill In       True  = A
-mkOutFill Out      True  = B
-
-mkInflowTile :: Flow -> Tile -> DisplayTile
-mkInflowTile (Flow fn fe fw fs) (Tile n e w s) = DisplayTile (mkInFill fn n) (mkInFill fe e) (mkInFill fw w) (mkInFill fs s)
-
-mkOutflowTile :: Flow -> Tile -> DisplayTile
-mkOutflowTile (Flow fn fe fw fs) (Tile n e w s) = DisplayTile (mkOutFill fn n) (mkOutFill fe e) (mkOutFill fw w) (mkOutFill fs s)
-
-mkWaterTile :: Int -> Int -> Flow -> Tile -> DisplayTile
-mkWaterTile time d f tile
-  | (time `mod` sr) == (d + 0 `mod` sr) =  mkInflowTile f tile
-  | (time `mod` sr) == (d + 1 `mod` sr) =    mkBoldTile tile
-  | (time `mod` sr) == (d + 2 `mod` sr) =    mkBoldTile tile
-  | (time `mod` sr) == (d + 3 `mod` sr) = mkOutflowTile f tile
-  | otherwise                           =   mkPlainTile tile
-  where sr = getSyncRate
-
-mkDisplayTile :: Int -> Square -> DisplayTile
-mkDisplayTile t (sq @ Square { _distance = Nothing                  }) = mkPlainTile (sq ^. tile)
-mkDisplayTile t (sq @ Square { _distance = Just d  , _flow = Just f }) = mkWaterTile t d f (sq ^. tile)
-mkDisplayTile t sq = mkPlainTile (sq ^. tile)
-
--- @return the Square with its DisplayTile updated to reflect the other associated data.
-setDisplayTile :: Int -> Square -> Square
-setDisplayTile c sq = sq & displaytile .~ mkDisplayTile c sq
 
 --------- --------- --------- --------- --------- --------- --------- ---------
 -- ADJACENCY LOGIC  --------- --------- --------- --------- --------- ---------
@@ -108,7 +64,7 @@ canReach board xy dir = inBounds adj_xy
 
 -- @return whether or not the two argument tiles share an interface.
 canReach' :: Tile -> Tile -> Dir -> Bool
-canReach' t t' N = t ^. tN && t' ^. tS
-canReach' t t' S = t ^. tS && t' ^. tN
-canReach' t t' W = t ^. tW && t' ^. tE
-canReach' t t' E = t ^. tE && t' ^. tW
+canReach' (n,_,_,_) (_,_,_,s) N = n && s
+canReach' (_,e,_,_) (_,_,w,_) E = e && w
+canReach' (_,_,w,_) (_,e,_,_) W = w && e
+canReach' (_,_,_,s) (n,_,_,_) S = s && n

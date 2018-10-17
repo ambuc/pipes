@@ -34,7 +34,7 @@ drawGameState gs = hBox [ corner_tl
                         , corner_tr
                         ]
                <=> hBox [ border_col getBoardHeight
-                        , drawBoard (gs ^. board)
+                        , drawBoard t (gs ^. board)
                         , border_col getBoardHeight
                         ]
                <=> hBox [ corner_bl
@@ -44,6 +44,7 @@ drawGameState gs = hBox [ corner_tl
                         , corner_br
                         ]
   where
+    t = gs ^. time
     (_,   tap_x) = gs ^. (border . tapLocation)
     (_, drain_x) = gs ^. (border . drainLocation)
     tap   = withAttr (attrName "fg-blue") $ str "┳"
@@ -57,10 +58,10 @@ drawGameState gs = hBox [ corner_tl
 
 
 -- @return the rendered Board.
-drawBoard :: Board -> Widget ()
-drawBoard b = hLimit getBoardWidth
-            $ vLimit getBoardHeight
-            $ vBox $ map (drawRow b) [0..getBoardHeight-1]
+drawBoard :: Int -> Board -> Widget ()
+drawBoard t b = hLimit getBoardWidth
+              $ vLimit getBoardHeight
+              $ vBox $ map (drawRow b) [0..getBoardHeight-1]
   where
     -- @return the row at the given index.
     drawRow :: Board -> Int -> Widget ()
@@ -72,9 +73,48 @@ drawBoard b = hLimit getBoardWidth
 
     -- @return the rendered Square.
     drawSquare :: Square -> Widget ()
-    drawSquare (s @ Square { _hascursor = True, _tile = Tile False False False False }) = withAttr (attrName "fg-red")  $ str "░"
-    drawSquare (s @ Square { _hascursor = True                                       }) = withAttr (attrName "fg-red")  $ str $ show (s ^. displaytile)
-    drawSquare (s @ Square { _distance = Nothing                                     }) =                                 str $ show (s ^. displaytile)
-    drawSquare (s @ Square { _distance = Just n                                      }) = withAttr (attrName "fg-blue") $ str $ show (s ^. displaytile)
+    drawSquare (s @ Square { _hascursor = True
+                           ,      _tile = (False, False, False, False) }) = withAttr (attrName "fg-red")  $ str "░"
+    drawSquare (s @ Square { _hascursor = True                         }) = withAttr (attrName "fg-red")  $ str $ showTile t s
+    drawSquare (s @ Square {  _distance = Nothing                      }) =                                 str $ showTile t s
+    drawSquare (s @ Square {  _distance = Just n                       }) = withAttr (attrName "fg-blue") $ str $ showTile t s
 
 
+-- TILES
+
+-- @return the described Tile, with f as the default fill.
+mkTile :: Fill -> Tile -> DisplayTile
+mkTile f (n, e, w, s) = ( if n then f else Z , if e then f else Z
+                        , if w then f else Z , if s then f else Z
+                        )
+
+-- @return the described flooded $tile, at time $time, at distance $dist,
+--         with flow characteristics $flow.
+mkWaterTile :: Int -> Int -> Flow -> Tile -> DisplayTile
+mkWaterTile time dist flow tile
+  | (time `mod` sr) == (dist + 0 `mod` sr) =  mkFlowTile In flow tile
+  | (time `mod` sr) == (dist + 1 `mod` sr) =  mkTile B tile
+  | (time `mod` sr) == (dist + 2 `mod` sr) =  mkTile B tile
+  | (time `mod` sr) == (dist + 3 `mod` sr) =  mkFlowTile Out flow tile
+  | otherwise                           =  mkTile A tile
+  where
+    sr = getSyncRate
+    mkFlowTile :: FlowDir -> Flow -> Tile -> DisplayTile
+    mkFlowTile dir (fn, fe, fw, fs) (n, e, w, s) = ( mkFill dir fn n, mkFill dir fe e
+                                                   , mkFill dir fw w, mkFill dir fs s
+                                                   )
+      where
+        mkFill :: FlowDir -> FlowDir -> Bool -> Fill
+        mkFill _ _ False = Z
+        mkFill a b _     = if a == b then A else B
+
+-- @return the described Square at time $time.
+mkDisplayTile :: Int -> Square -> DisplayTile
+mkDisplayTile time (square @ Square { _distance = Nothing   }) = mkTile A (square ^. tile)
+mkDisplayTile time (square @ Square { _distance = Just dist
+                                    ,     _flow = Just flow }) = mkWaterTile time dist flow (square ^. tile)
+
+showTile :: Int -> Square -> String
+showTile time square = [corpus !! (27 * fromEnum w + 9 * fromEnum s
+                                  + 3 * fromEnum e + 1 * fromEnum n)]
+  where (n, e, w, s) = mkDisplayTile time square

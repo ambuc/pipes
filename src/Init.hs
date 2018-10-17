@@ -12,17 +12,16 @@ import           Util
 
 -- @return a Tile of the given Shape.
 mkTile :: Shape -> Tile -- N E W S
-mkTile Blank    = Tile False False False False  -- ' '
-mkTile Line     = Tile False True  True  False   -- '─'
-mkTile Bend     = Tile True  True  False False  -- '└'
-mkTile Tee      = Tile True  True  False True  -- '├'
-mkTile Cross    = Tile True  True  True  True   -- '┼'
-mkTile Culdesac = Tile True  False False False  -- '╵'
+mkTile Blank    = (False, False, False, False)  -- ' '
+mkTile Line     = (False,  True,  True, False)  -- '─'
+mkTile Bend     = ( True,  True, False, False)  -- '└'
+mkTile Tee      = ( True,  True, False,  True)  -- '├'
+mkTile Cross    = ( True,  True,  True,  True)  -- '┼'
+mkTile Culdesac = ( True, False, False, False)  -- '╵'
 
 -- @return an empty Square.
 mkEmptySquare :: Square
 mkEmptySquare = Square {        _tile = nullTile
-                       , _displaytile = DisplayTile Z Z Z Z
                        ,        _flow = Nothing
                        ,    _distance = Nothing
                        ,   _hascursor = False
