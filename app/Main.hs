@@ -19,10 +19,9 @@ import           System.Random               as R
 
 import           Actions                     (move, spin, tick)
 import           Init                        (mkInitState)
-import           Magic
-import           Redraw                      (redraw)
+import           Magic                       (getBChanQueueLength, getFrameRate)
 import           Types
-import           UI                          (draw)
+import           UI                          (redraw, render)
 
 appEvent :: GameState
          -> BrickEvent () Tick
@@ -51,7 +50,7 @@ aMap = attrMap V.defAttr
      ]
 
 mkApp :: App GameState Tick ()
-mkApp = App { appDraw         = UI.draw
+mkApp = App { appDraw         = UI.render
             , appChooseCursor = showFirstCursor
             , appHandleEvent  = appEvent
             , appStartEvent   = return

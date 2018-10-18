@@ -1,5 +1,6 @@
 module Init
     ( mkInitState
+    , mkEmptySquare
     ) where
 
 import           Control.Monad (replicateM)
@@ -8,9 +9,9 @@ import qualified System.Random as Random
 
 import           Lens.Micro    ((%~), (&), (.~), (^.))
 
-import           Magic
+import           Magic         (getBoardHeight, getBoardWidth)
 import           Types
-import           Util
+import           Util          (rotate)
 
 -- @return a Tile of the given Shape.
 mkTile :: Shape -> Tile -- N E W S
@@ -62,7 +63,7 @@ mkRandomBoard = do
         -- @return a random Tile at a random rotation.
         mkRandomTile :: IO Tile
         mkRandomTile = do
-          random_enum <- Random.randomRIO (0, fromEnum (maxBound :: Shape))
+          random_enum <- Random.randomRIO (3,4) -- (0, fromEnum (maxBound :: Shape))
           random_rot  <- Random.randomRIO (0, 3)
           let tile = mkTile $ toEnum random_enum
           let rotated_tile = iterate rotate tile !! random_rot

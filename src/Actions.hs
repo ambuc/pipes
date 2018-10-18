@@ -4,14 +4,11 @@ module Actions
     , tick
     ) where
 
-import           Data.Array     ((!), (//))
+import           Lens.Micro     ((%~), (&), (^.))
+import           Lens.Micro.GHC (ix)
 
-import           Lens.Micro     ((%~), (&), (^.), (^?!))
-import           Lens.Micro.GHC (each, ix)
-
-import           Magic
 import           Types
-import           Util
+import           Util           (adj, rotate)
 
 -- @return the argument GameState, with the cursor moved one unit in the given
 --         direction.

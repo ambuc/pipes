@@ -1,9 +1,9 @@
 module Util where
 
 import           Lens.Micro     ((%~), (&), (.~), (^.), (^?!))
-import           Lens.Micro.GHC (each, ix)
+import           Lens.Micro.GHC (ix)
 
-import           Magic
+import           Magic          (getBoardHeight, getBoardWidth)
 import           Types
 
 -- @return whether or not the input coordinate is within the game board
