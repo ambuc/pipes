@@ -6,18 +6,9 @@ import           Lens.Micro.GHC (each, ix)
 import           Magic
 import           Types
 
---
--- BOARD
---
-
-
 -- @return whether or not the input coordinate is within the game board
 inBounds :: (Int, Int) -> Bool
 inBounds (h,w) = h >= 0 && h < getBoardHeight && w >= 0 && w < getBoardWidth
-
---
--- FLOW
---
 
 -- N E W S
 addFlowFrom :: Dir -> Maybe Flow -> Maybe Flow
@@ -30,20 +21,17 @@ addFlowFrom E (Just (a, _, c, d)) = Just (  a,  In,   c,   d)
 addFlowFrom W (Just (a, b, _, d)) = Just (  a,   b,  In,   d)
 addFlowFrom S (Just (a, b, c, _)) = Just (  a,   b,   c,  In)
 
---
--- TILES / DISPLAYTILES
---
+isNullTile :: Tile -> Bool
+isNullTile = (==(False, False, False, False))
+
+inv :: Dir -> Dir
+inv N = S
+inv S = N
+inv E = W
+inv W = E
 
 -- @return a rotated Tile
 rotate (n, e, w, s) = (w, n, s, e)
-
--- @return the canonical empty Tile.
-nullTile = (False, False, False, False)
-
-
---------- --------- --------- --------- --------- --------- --------- ---------
--- ADJACENCY LOGIC  --------- --------- --------- --------- --------- ---------
---------- --------- --------- --------- --------- --------- --------- ---------
 
 -- @return the coordinates adjacent to the input coordinate in the given
 --         direction.
@@ -57,9 +45,9 @@ adj S (h,w) = (min (getBoardHeight - 1) (h+1), w)
 --         adjacent to it in the given direction.
 canReach :: Board -> (Int, Int) -> Dir -> Bool
 canReach board xy dir = inBounds adj_xy
-                 && canReach' (board ^?! ix xy . tile)
-                              (board ^?! ix adj_xy . tile)
-                              dir
+                     && canReach' (board ^?! ix xy . tile)
+                                  (board ^?! ix adj_xy . tile)
+                                  dir
   where adj_xy = adj dir xy
 
 -- @return whether or not the two argument tiles share an interface.

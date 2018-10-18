@@ -11,7 +11,8 @@ import           Brick.Widgets.Core         (fill, hBox, hLimit, str, vBox,
                                              (<+>), (<=>))
 import           Data.Array                 ((!))
 
-import           Lens.Micro                 ((^.))
+import           Lens.Micro                 ((^.), (^?!))
+import           Lens.Micro.GHC             (each, ix)
 
 import           Magic
 import           Types
@@ -20,10 +21,8 @@ import           Util
 -- @return the rendered GameState.
 draw :: GameState -> [Widget ()]
 draw gs = [ withBorderStyle unicode
-          $ center $ drawGameState gs <=> debugLine
+          $ center $ drawGameState gs
           ]
-  where
-    debugLine = str $ show $ gs ^. time
 
 -- @return the rendered Board, containing the Border and pipes at the center.
 drawGameState :: GameState -> Widget ()
@@ -73,14 +72,20 @@ drawBoard t b = hLimit getBoardWidth
 
     -- @return the rendered Square.
     drawSquare :: Square -> Widget ()
-    drawSquare (s @ Square { _hascursor = True
-                           ,      _tile = (False, False, False, False) }) = withAttr (attrName "fg-red")  $ str "░"
-    drawSquare (s @ Square { _hascursor = True                         }) = withAttr (attrName "fg-red")  $ str $ showTile t s
-    drawSquare (s @ Square {  _distance = Nothing                      }) =                                 str $ showTile t s
-    drawSquare (s @ Square {  _distance = Just n                       }) = withAttr (attrName "fg-blue") $ str $ showTile t s
+    drawSquare s = squareStyle s $ squareContent s
 
+    -- @return the custom styling for the Square.
+    squareStyle :: Square -> Widget () -> Widget ()
+    squareStyle Square { _hascursor = True   } = withAttr $ attrName "fg-red"
+    squareStyle Square {  _distance = Just n } = withAttr $ attrName "fg-blue"
+    squareStyle _                              = id
 
--- TILES
+    -- @return the text content of the Square.
+    squareContent :: Square -> Widget ()
+    squareContent sq
+      | sq ^. hascursor && isNullTile (sq ^. tile) = str "░"
+      | otherwise                                  = str $ showTile t sq
+
 
 -- @return the described Tile, with f as the default fill.
 mkTile :: Fill -> Tile -> DisplayTile
@@ -92,29 +97,31 @@ mkTile f (n, e, w, s) = ( if n then f else Z , if e then f else Z
 --         with flow characteristics $flow.
 mkWaterTile :: Int -> Int -> Flow -> Tile -> DisplayTile
 mkWaterTile time dist flow tile
-  | (time `mod` sr) == (dist + 0 `mod` sr) =  mkFlowTile In flow tile
-  | (time `mod` sr) == (dist + 1 `mod` sr) =  mkTile B tile
-  | (time `mod` sr) == (dist + 2 `mod` sr) =  mkTile B tile
-  | (time `mod` sr) == (dist + 3 `mod` sr) =  mkFlowTile Out flow tile
-  | otherwise                           =  mkTile A tile
+  | (time `mod` sr) == (dist + 0 `mod` sr) = mkFlowTile In flow tile
+  | (time `mod` sr) == (dist + 1 `mod` sr) = mkTile B tile
+  | (time `mod` sr) == (dist + 2 `mod` sr) = mkTile B tile
+  | (time `mod` sr) == (dist + 3 `mod` sr) = mkFlowTile Out flow tile
+  | otherwise                              = mkTile A tile
   where
     sr = getSyncRate
     mkFlowTile :: FlowDir -> Flow -> Tile -> DisplayTile
-    mkFlowTile dir (fn, fe, fw, fs) (n, e, w, s) = ( mkFill dir fn n, mkFill dir fe e
-                                                   , mkFill dir fw w, mkFill dir fs s
+    mkFlowTile dir (fn, fe, fw, fs) (n, e, w, s) = ( mkFill dir fn n
+                                                   , mkFill dir fe e
+                                                   , mkFill dir fw w
+                                                   , mkFill dir fs s
                                                    )
-      where
-        mkFill :: FlowDir -> FlowDir -> Bool -> Fill
-        mkFill _ _ False = Z
-        mkFill a b _     = if a == b then A else B
 
--- @return the described Square at time $time.
-mkDisplayTile :: Int -> Square -> DisplayTile
-mkDisplayTile time (square @ Square { _distance = Nothing   }) = mkTile A (square ^. tile)
-mkDisplayTile time (square @ Square { _distance = Just dist
-                                    ,     _flow = Just flow }) = mkWaterTile time dist flow (square ^. tile)
+    mkFill :: FlowDir -> FlowDir -> Bool -> Fill
+    mkFill _ _ False = Z
+    mkFill a b _     = if a == b then A else B
+
 
 showTile :: Int -> Square -> String
-showTile time square = [corpus !! (27 * fromEnum w + 9 * fromEnum s
-                                  + 3 * fromEnum e + 1 * fromEnum n)]
-  where (n, e, w, s) = mkDisplayTile time square
+showTile time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
+                              + 3 * fromEnum e + 1 * fromEnum n)]
+  where
+    (n, e, w, s) = showTile' (sq ^. distance) (sq ^. flow)
+
+    showTile' :: Maybe Int -> Maybe Flow -> DisplayTile
+    showTile' Nothing Nothing         = mkTile A (sq ^. tile)
+    showTile' (Just dist) (Just flow) = mkWaterTile time dist flow (sq ^. tile)

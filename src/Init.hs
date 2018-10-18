@@ -1,4 +1,6 @@
-module Init where
+module Init
+    ( mkInitState
+    ) where
 
 import           Control.Monad (replicateM)
 import           Data.Array    (array)
@@ -12,16 +14,16 @@ import           Util
 
 -- @return a Tile of the given Shape.
 mkTile :: Shape -> Tile -- N E W S
-mkTile Blank    = (False, False, False, False)  -- ' '
-mkTile Line     = (False,  True,  True, False)  -- '─'
-mkTile Bend     = ( True,  True, False, False)  -- '└'
-mkTile Tee      = ( True,  True, False,  True)  -- '├'
-mkTile Cross    = ( True,  True,  True,  True)  -- '┼'
-mkTile Culdesac = ( True, False, False, False)  -- '╵'
+mkTile Null  = (False, False, False, False)  -- ' '
+mkTile Line  = (False,  True,  True, False)  -- '─'
+mkTile Bend  = ( True,  True, False, False)  -- '└'
+mkTile Tee   = ( True,  True, False,  True)  -- '├'
+mkTile Cross = ( True,  True,  True,  True)  -- '┼'
+mkTile Nub   = ( True, False, False, False)  -- '╵'
 
 -- @return an empty Square.
 mkEmptySquare :: Square
-mkEmptySquare = Square {        _tile = nullTile
+mkEmptySquare = Square {        _tile = (False, False, False, False)
                        ,        _flow = Nothing
                        ,    _distance = Nothing
                        ,   _hascursor = False
@@ -40,8 +42,8 @@ mkRandomBorder = do
 mkRandomBoard :: IO Board
 mkRandomBoard = do
   random_squares <- replicateM (w * h) mkRandomSquare
-  -- arrays list numerically, i.e. first item of tuple constant, second item varying
-  -- if we want assocs to list over, we need to store (row, col)
+  -- arrays list numerically, i.e. first item of tuple constant, second item
+  -- varying. if we want assocs to list over, we need to store (row, col)
   return $ array ( (  0,   0)
                  , (h-1, w-1) -- w x h
                  ) $ zip [ (y,x) | x <- [0..w-1] , y <- [0..h-1]]
@@ -67,8 +69,8 @@ mkRandomBoard = do
           return rotated_tile
 
 -- @return the initial, shuffled GameState.
-mkState :: IO GameState
-mkState = do
+mkInitState :: IO GameState
+mkInitState = do
   init_border <- mkRandomBorder
   init_board  <- mkRandomBoard
   let init_cursor = (\(h,w) -> (h+1, w)) $ init_border ^. tapLocation

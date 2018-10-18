@@ -17,30 +17,29 @@ import           Control.Monad.STM           (atomically)
 import           Graphics.Vty                as V
 import           System.Random               as R
 
-import           Actions
-import           Compute
-import           Init
+import           Actions                     (move, spin, tick)
+import           Init                        (mkInitState)
 import           Magic
+import           Redraw                      (redraw)
 import           Types
-import           UI
-
+import           UI                          (draw)
 
 appEvent :: GameState
          -> BrickEvent () Tick
          -> EventM () (Next GameState)
-appEvent s (AppEvent Tick)                       = continue $ incrementTime s
+appEvent s (AppEvent Tick)                       = continue $ tick s
 appEvent s (VtyEvent (V.EvKey V.KEsc []))        = halt s
 appEvent s (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt s
-appEvent s (VtyEvent (V.EvKey V.KUp []))         = continue $ recomputeState $ move N s
-appEvent s (VtyEvent (V.EvKey V.KDown []))       = continue $ recomputeState $ move S s
-appEvent s (VtyEvent (V.EvKey V.KLeft []))       = continue $ recomputeState $ move W s
-appEvent s (VtyEvent (V.EvKey V.KRight []))      = continue $ recomputeState $ move E s
-appEvent s (VtyEvent (V.EvKey (V.KChar 'w') [])) = continue $ recomputeState $ move N s
-appEvent s (VtyEvent (V.EvKey (V.KChar 's') [])) = continue $ recomputeState $ move S s
-appEvent s (VtyEvent (V.EvKey (V.KChar 'a') [])) = continue $ recomputeState $ move W s
-appEvent s (VtyEvent (V.EvKey (V.KChar 'd') [])) = continue $ recomputeState $ move E s
-appEvent s (VtyEvent (V.EvKey (V.KChar ' ') [])) = continue $ recomputeState $ rotateCursor s
-appEvent s _                                     = continue $ recomputeState s
+appEvent s (VtyEvent (V.EvKey V.KUp []))         = continue $ redraw $ move N s
+appEvent s (VtyEvent (V.EvKey V.KDown []))       = continue $ redraw $ move S s
+appEvent s (VtyEvent (V.EvKey V.KLeft []))       = continue $ redraw $ move W s
+appEvent s (VtyEvent (V.EvKey V.KRight []))      = continue $ redraw $ move E s
+appEvent s (VtyEvent (V.EvKey (V.KChar 'w') [])) = continue $ redraw $ move N s
+appEvent s (VtyEvent (V.EvKey (V.KChar 's') [])) = continue $ redraw $ move S s
+appEvent s (VtyEvent (V.EvKey (V.KChar 'a') [])) = continue $ redraw $ move W s
+appEvent s (VtyEvent (V.EvKey (V.KChar 'd') [])) = continue $ redraw $ move E s
+appEvent s (VtyEvent (V.EvKey (V.KChar ' ') [])) = continue $ redraw $ spin s
+appEvent s _                                     = continue $ redraw s
 
 aMap :: AttrMap
 aMap = attrMap V.defAttr
@@ -52,11 +51,11 @@ aMap = attrMap V.defAttr
      ]
 
 mkApp :: App GameState Tick ()
-mkApp = App { appDraw         = UI.draw         -- s -> [Widget n]
-            , appChooseCursor = showFirstCursor -- s -> [CursorLocation n] -> Maybe (CursorLocation n)
-            , appHandleEvent  = appEvent        -- s -> BrickEvent n e -> EventM n (Next s)
-            , appStartEvent   = return          -- s -> EventM n s
-            , appAttrMap      = const aMap      -- s -> AttrMap
+mkApp = App { appDraw         = UI.draw
+            , appChooseCursor = showFirstCursor
+            , appHandleEvent  = appEvent
+            , appStartEvent   = return
+            , appAttrMap      = const aMap
             }
 
 controlThread :: TVar Int -> BChan Tick -> IO ()
@@ -73,5 +72,5 @@ main = do
 
   let init_vty = V.mkVty =<< V.standardIOConfig
   let init_app = mkApp
-  init_state <- recomputeState <$> Init.mkState
+  init_state <- redraw <$> mkInitState
   void $ customMain init_vty (Just chan) init_app init_state
