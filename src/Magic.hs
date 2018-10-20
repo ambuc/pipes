@@ -5,6 +5,6 @@ module Magic where
 getBChanQueueLength =     10 :: Int
 getBoardHeight      =     10 :: Int
 getBoardWidth       =     20 :: Int
-getFrameRate        = 50000 :: Int
+getFrameRate        =  50000 :: Int
 getMaxExploreDist   =    200 :: Int
 getSyncRate         =     35 :: Int

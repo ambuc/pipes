@@ -1,10 +1,7 @@
-module Init
-    ( mkInitState
-    , mkEmptySquare
-    ) where
+module Init where
 
 import           Control.Monad (replicateM)
-import           Data.Array    (array)
+import           Data.Array    (Array, array, (!))
 import qualified System.Random as Random
 
 import           Lens.Micro    ((%~), (&), (.~), (^.))
@@ -53,27 +50,65 @@ mkRandomBoard = do
     h = getBoardHeight
     w = getBoardWidth
 
-    -- @return a random Square.
-    mkRandomSquare :: IO Square
-    mkRandomSquare = do
-      tile <- mkRandomTile
-      return $ mkEmptySquare { _tile = tile }
-      where
-        -- TODO(ambuc): This could have a tile distribution.
-        -- @return a random Tile at a random rotation.
-        mkRandomTile :: IO Tile
-        mkRandomTile = do
-          random_enum <- Random.randomRIO (3,4) -- (0, fromEnum (maxBound :: Shape))
-          random_rot  <- Random.randomRIO (0, 3)
-          let tile = mkTile $ toEnum random_enum
-          let rotated_tile = iterate rotate tile !! random_rot
-          return rotated_tile
+-- @return a random Square.
+mkRandomSquare :: IO Square
+mkRandomSquare = do
+  tile <- mkRandomTile
+  return $ mkEmptySquare { _tile = tile }
+  where
+    -- TODO(ambuc): This could have a tile distribution.
+    -- @return a random Tile at a random rotation.
+    mkRandomTile :: IO Tile
+    mkRandomTile = do
+      random_enum <- Random.randomRIO (3,4) -- (0, fromEnum (maxBound :: Shape))
+      random_rot  <- Random.randomRIO (0, 3)
+      let tile = mkTile $ toEnum random_enum
+      let rotated_tile = iterate rotate tile !! random_rot
+      return rotated_tile
+
+
+--type WallSet = Array (Int, Int) Bool
+--
+--mkEmptyWallSet :: (Int, Int) -> WallSet
+--mkEmptyWallSet (h,w) =  array ( (  0,  0)
+--                              , (h-1,w-1)
+--                              ) $ zip [ (y,x) | x <- [0..w-1], y <- [0..h-1] ]
+--                                      (repeat False)
+--
+--mkWallSet :: (Int, Int) -> WallSet -> IO WallSet
+--mkWallSet (h,w) ws
+--  | h <= 2 || w <= 2 = return ws
+--  | otherwise        = return ws
+--
+--squareFromWalls :: (Int, Int) -> WallSet -> Square
+--squareFromWalls (h,w) ws = mkEmptySquare { _tile = (northWall, eastWall
+--                                                   , westWall, southWall) }
+--  where
+--   northWall = ws ! ((2*h+1) - 1, (2*w+1) + 0)
+--   southWall = ws ! ((2*h+1) + 1, (2*w+1) + 0)
+--   eastWall  = ws ! ((2*h+1) + 0, (2*w+1) + 1)
+--   westWall  = ws ! ((2*h+1) + 0, (2*w+1) - 1)
+--
+--wallSetToBoard :: (Int, Int) -> WallSet -> Board
+--wallSetToBoard (h,w) ws = array ( (0,0) , (h-1,w-1) )
+--                                [ ( (y,x)
+--                                  , squareFromWalls (y,x) ws
+--                                  )
+--                                | x <- [0..w-1], y <- [0..h-1]
+--                                ]
+--
+--
+--mkRandomMaze :: (Int, Int) -> IO Board -- (h, w)
+--mkRandomMaze (h,w) = do
+--  wall_set <- mkWallSet (2*h+1,2*w+1)
+--       $ mkEmptyWallSet (2*h+1,2*w+1)
+--  return $ wallSetToBoard (h,w) wall_set
 
 -- @return the initial, shuffled GameState.
 mkInitState :: IO GameState
 mkInitState = do
   init_border <- mkRandomBorder
-  init_board  <- mkRandomBoard
+  init_board  <- mkRandomBoard -- mkRandomMaze (getBoardHeight, getBoardWidth)
   let init_cursor = (\(h,w) -> (h+1, w)) $ init_border ^. tapLocation
   return GameState { _border = init_border
                    ,  _board = init_board
