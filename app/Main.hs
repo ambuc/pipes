@@ -15,6 +15,7 @@ import           Control.Concurrent.STM.TVar (TVar, newTVar, readTVar)
 import           Control.Monad               (forever, void)
 import           Control.Monad.STM           (atomically)
 import           Graphics.Vty                as V
+import           Lens.Micro                  ((^.))
 import           System.Random               as R
 
 import           Actions                     (move, spin, tick)
@@ -22,6 +23,8 @@ import           Init                        (mkInitState)
 import           Magic                       (getBChanQueueLength, getFrameRate)
 import           Types
 import           UI                          (redraw, render)
+
+data Tick = Tick
 
 appEvent :: GameState
          -> BrickEvent () Tick

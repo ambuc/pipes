@@ -11,22 +11,31 @@ import           Brick.Widgets.Core         (fill, hBox, hLimit, str, vBox,
                                              vLimit, withAttr, withBorderStyle,
                                              (<+>), (<=>))
 import           Data.Array                 ((!))
-
 import           Data.Maybe                 (isJust)
-
 import           Lens.Micro                 ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC             (each, ix)
 
-import           Init                       (mkEmptySquare)
-import           Magic                      (getBoardHeight, getBoardWidth,
-                                             getMaxExploreDist, getSyncRate)
+import           Magic
 import           Types
-import           Util                       (addFlowFrom, adj, canReach, inv,
-                                             isNullTile)
+import           Util
+
+-- @return the rendered GameState.
+render :: GameState -> [Widget ()]
+render gs = [ withBorderStyle unicode
+            $ center $ drawGameState gs
+            ]
+
+-- @return the given GameState, with all visual elements re-rendered as a
+--         function of the current cursor / tile configuration.
+redraw :: GameState -> GameState
+redraw = recomputeCursor
+       . recomputeFlow
+       . resetAll
 
 --------------------------------------------------------------------------------
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
+
+type DisplayTile = (Fill, Fill, Fill, Fill)
+data Fill        = Z | A | B deriving (Bounded, Enum) -- zilch, average, bold
 
 -- @return the described Tile, with f as the default fill.
 mkTile :: Fill -> Tile -> DisplayTile
@@ -135,17 +144,6 @@ drawGameState gs = hBox [ corner_tl
     border_line n = hLimit n $ vLimit 1 $ fill '━'
     border_col  n = vLimit n $ hLimit 1 $ fill '┃'
 
---
--- @return the rendered GameState.
-render :: GameState -> [Widget ()]
-render gs = [ withBorderStyle unicode
-            $ center $ drawGameState gs
-            ]
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-
 -- @return the given GameState, with all _flowstate fields updated
 --         to reflect the new connectivity graph.
 recomputeFlow :: GameState -> GameState
@@ -196,11 +194,4 @@ resetAll gs = gs & board . each %~ resetSquare
   where
     resetSquare :: Square -> Square
     resetSquare Square {_tile = t} = mkEmptySquare { _tile = t}
-
--- @return the given GameState, with all visual elements re-rendered as a
---         function of the current cursor / tile configuration.
-redraw :: GameState -> GameState
-redraw = recomputeCursor
-       . recomputeFlow
-       . resetAll
 
