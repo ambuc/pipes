@@ -25,17 +25,16 @@ mkInitState = do
 
 --------------------------------------------------------------------------------
 
-random_doubles :: Int -> IO [Double]
-random_doubles n = do
+randomDoubles :: Int -> IO [Double]
+randomDoubles n = do
   gen <- Random.getStdGen
   return $ take n $ Random.randomRs (0.0, 1.0) gen
 
 randomWeights' :: IO (Array (Int, Int) Double)
 randomWeights' = do
   let (w,h) = getBoardBounds
-  wts <- random_doubles (w*h)
-  return $ listArray ((0,0), (w-1,h-1)) $ wts
-
+  wts <- randomDoubles (w*h)
+  return $ listArray ((0,0), (w-1,h-1)) wts
 
 
 -- @return a random Border object with tap/drain locations.

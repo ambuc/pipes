@@ -28,8 +28,7 @@ render gs = [ withBorderStyle unicode
 -- @return the given GameState, with all visual elements re-rendered as a
 --         function of the current cursor / tile configuration.
 redraw :: GameState -> GameState
-redraw = id
-       . recomputeOver'
+redraw = recomputeOver'
        . recomputeCursor'
        . recomputeFlow
        . resetAll'
@@ -82,10 +81,10 @@ showTile' time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
     (n, e, w, s) = showTile'' sq
 
     showTile'' :: Square -> DisplayTile
-    showTile'' (Square { _distance = Nothing }) = mkTile' A (sq ^. tile)
-    showTile'' (Square {     _flow = Nothing }) = mkTile' A (sq ^. tile)
-    showTile'' (Square { _distance = Just d
-                       ,     _flow = Just f  }) = mkWaterTile' time d f (sq ^. tile)
+    showTile'' Square { _distance = Nothing } = mkTile' A (sq ^. tile)
+    showTile'' Square {     _flow = Nothing } = mkTile' A (sq ^. tile)
+    showTile'' Square { _distance = Just d
+                      ,     _flow = Just f  } = mkWaterTile' time d f (sq ^. tile)
 
 -- @return the rendered Board.
 drawBoard' :: Int -> Board -> Widget ()
@@ -107,8 +106,8 @@ drawBoard' t b = hLimit getBoardWidth
 
     -- @return the custom styling for the Square.
     squareStyle' :: Square -> Widget () -> Widget ()
-    squareStyle' Square { _hascursor = True   } = (withAttr $ attrName "bg-red")
-                                                . (withAttr $ attrName "fg-red")
+    squareStyle' Square { _hascursor = True   } = withAttr (attrName "bg-red")
+                                                . withAttr (attrName "fg-red")
     squareStyle' Square {  _distance = Just n } = withAttr $ attrName "fg-blue"
     squareStyle' _                              = id
 
@@ -150,7 +149,7 @@ drawGameState' gs = hBox [ corner_tl
     border_line n = maybe_blue $ hLimit n $ vLimit 1 $ fill '━'
     border_col  n = maybe_blue $ vLimit n $ hLimit 1 $ fill '┃'
 
-    maybe_blue = if (is_over) then (but_blue) else id
+    maybe_blue = if is_over then but_blue else id
     but_blue = withAttr $ attrName "fg-blue"
 
 -- @return the given GameState, with all _flowstate fields updated
@@ -202,7 +201,7 @@ recomputeCursor' gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
 -- @return the given GameState, with the _over field filled in via
 --         Util.isComplete.
 recomputeOver' :: GameState -> GameState
-recomputeOver' gs = gs & over .~ (isComplete gs)
+recomputeOver' gs = gs & over .~ isComplete gs
 
 
 -- @return the given GameState, with all rendering artifacts cleared.
