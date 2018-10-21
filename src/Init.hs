@@ -20,6 +20,7 @@ mkInitState = do
                    ,  _board = init_board
                    , _cursor = init_cursor
                    ,   _time = 0
+                   ,   _over = False
                    }
 
 --------------------------------------------------------------------------------

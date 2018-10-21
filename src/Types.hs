@@ -22,6 +22,7 @@ data GameState   = GameState {  _board :: Board
                              , _border :: Border
                              , _cursor :: (Int, Int)
                              ,   _time :: Int
+                             ,   _over :: Bool
                              }
 
 makeLenses ''Square

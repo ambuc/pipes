@@ -1,5 +1,6 @@
 module Util where
 
+import           Data.Maybe     (isJust)
 import           Lens.Micro     ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC (ix)
 
@@ -28,7 +29,6 @@ addFlowFrom S (Just (a, b, c, _)) = Just (  a,   b,   c,  In)
 isNullTile :: Tile -> Bool
 isNullTile = (==(False, False, False, False))
 
-
 -- @return a Tile of the given Shape.
 shapeToTile :: Shape -> Tile -- N E W S
 shapeToTile Null  = (False, False, False, False)  -- 0 ' '
@@ -47,6 +47,9 @@ inv W = E
 
 -- @return a rotated Tile
 rotate (n, e, w, s) = (w, n, s, e)
+
+hasSouth :: Tile -> Bool
+hasSouth (_,_,_,x) = x
 
 -- @return the coordinates adjacent to the input coordinate in the given
 --         direction.
@@ -80,3 +83,10 @@ mkEmptySquare = Square {        _tile = (False, False, False, False)
                        ,   _hascursor = False
                        }
 
+isComplete :: GameState -> Bool
+isComplete gs = isJust (drain_inlet ^. distance)
+             && hasSouth (drain_inlet ^. tile)
+  where
+    drain_inlet = gs ^. board ^?! ix di
+    di@(di_y, di_x) = (d_y-1, d_x) -- drain inlet
+    d@(d_y, d_x) = gs ^. border ^. drainLocation

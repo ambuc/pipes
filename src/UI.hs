@@ -28,7 +28,8 @@ render gs = [ withBorderStyle unicode
 -- @return the given GameState, with all visual elements re-rendered as a
 --         function of the current cursor / tile configuration.
 redraw :: GameState -> GameState
-redraw = recomputeCursor
+redraw = recomputeOver
+       . recomputeCursor
        . recomputeFlow
        . resetAll
 
@@ -103,7 +104,8 @@ drawBoard t b = hLimit getBoardWidth
 
     -- @return the custom styling for the Square.
     squareStyle :: Square -> Widget () -> Widget ()
-    squareStyle Square { _hascursor = True   } = withAttr $ attrName "fg-red"
+    squareStyle Square { _hascursor = True   } = (withAttr $ attrName "bg-red")
+                                               . (withAttr $ attrName "fg-red")
     squareStyle Square {  _distance = Just n } = withAttr $ attrName "fg-blue"
     squareStyle _                              = id
 
@@ -116,7 +118,7 @@ drawBoard t b = hLimit getBoardWidth
 -- @return the rendered Board, containing the Border and pipes at the center.
 drawGameState :: GameState -> Widget ()
 drawGameState gs = hBox [ corner_tl
-                       , border_line tap_x
+                        , border_line tap_x
                         , tap
                         , border_line (getBoardWidth - tap_x - 1)
                         , corner_tr
@@ -132,17 +134,21 @@ drawGameState gs = hBox [ corner_tl
                         , corner_br
                         ]
   where
-    t = gs ^. time
+    t       = gs ^. time
+    is_over = gs ^. over
     (_,   tap_x) = gs ^. (border . tapLocation)
     (_, drain_x) = gs ^. (border . drainLocation)
-    tap   = withAttr (attrName "fg-blue") $ str "┳"
-    drain = str "┻"
-    corner_tl = str "┏"
-    corner_tr = str "┓"
-    corner_bl = str "┗"
-    corner_br = str "┛"
-    border_line n = hLimit n $ vLimit 1 $ fill '━'
-    border_col  n = vLimit n $ hLimit 1 $ fill '┃'
+    tap   = but_blue $ str "┳"
+    drain = maybe_blue $ str "┻"
+    corner_tl = maybe_blue $ str "┏"
+    corner_tr = maybe_blue $ str "┓"
+    corner_bl = maybe_blue $ str "┗"
+    corner_br = maybe_blue $ str "┛"
+    border_line n = maybe_blue $ hLimit n $ vLimit 1 $ fill '━'
+    border_col  n = maybe_blue $ vLimit n $ hLimit 1 $ fill '┃'
+
+    maybe_blue = if (is_over) then (but_blue) else id
+    but_blue = withAttr $ attrName "fg-blue"
 
 -- @return the given GameState, with all _flowstate fields updated
 --         to reflect the new connectivity graph.
@@ -187,6 +193,11 @@ recomputeFlow gs = gs & board %~ (if entry_is_connected
 -- @return the given GameState, with the location of the cursor set.
 recomputeCursor :: GameState -> GameState
 recomputeCursor gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
+
+-- @return the given GameState, with the _over field filled in via
+--         Util.isComplete.
+recomputeOver :: GameState -> GameState
+recomputeOver gs = gs & over .~ (isComplete gs)
 
 -- @return the given GameState, with all rendering artifacts cleared.
 resetAll :: GameState -> GameState
