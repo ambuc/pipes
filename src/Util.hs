@@ -48,8 +48,17 @@ inv W = E
 -- @return a rotated Tile
 rotate (n, e, w, s) = (w, n, s, e)
 
+has' :: Dir -> Tile -> Bool
+has' N (x,_,_,_) = x
+has' E (_,x,_,_) = x
+has' W (_,_,x,_) = x
+has' S (_,_,_,x) = x
+
+hasNorth :: Tile -> Bool
+hasNorth = has' N
+
 hasSouth :: Tile -> Bool
-hasSouth (_,_,_,x) = x
+hasSouth = has' S
 
 -- @return the coordinates adjacent to the input coordinate in the given
 --         direction.
@@ -83,10 +92,15 @@ mkEmptySquare = Square {        _tile = (False, False, False, False)
                        ,   _hascursor = False
                        }
 
+tapOutletXY :: GameState -> (Int, Int)
+tapOutletXY gs = (t_y + 1, t_x)
+  where t@(t_y, t_x) = gs ^. border ^. tapLocation
+
+drainInletXY :: GameState -> (Int, Int)
+drainInletXY gs = (d_y - 1, d_x)
+  where d@(d_y, d_x) = gs ^. border ^. drainLocation
+
 isComplete :: GameState -> Bool
 isComplete gs = isJust (drain_inlet ^. distance)
              && hasSouth (drain_inlet ^. tile)
-  where
-    drain_inlet = gs ^. board ^?! ix di
-    di@(di_y, di_x) = (d_y-1, d_x) -- drain inlet
-    d@(d_y, d_x) = gs ^. border ^. drainLocation
+  where drain_inlet = gs ^. board ^?! ix (drainInletXY gs)

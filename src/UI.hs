@@ -22,16 +22,17 @@ import           Util
 -- @return the rendered GameState.
 render :: GameState -> [Widget ()]
 render gs = [ withBorderStyle unicode
-            $ center $ drawGameState gs
+            $ center $ drawGameState' gs
             ]
 
 -- @return the given GameState, with all visual elements re-rendered as a
 --         function of the current cursor / tile configuration.
 redraw :: GameState -> GameState
-redraw = recomputeOver
-       . recomputeCursor
+redraw = id
+       . recomputeOver'
+       . recomputeCursor'
        . recomputeFlow
-       . resetAll
+       . resetAll'
 
 --------------------------------------------------------------------------------
 
@@ -39,21 +40,21 @@ type DisplayTile = (Fill, Fill, Fill, Fill)
 data Fill        = Z | A | B deriving (Bounded, Enum) -- zilch, average, bold
 
 -- @return the described Tile, with f as the default fill.
-mkTile :: Fill -> Tile -> DisplayTile
-mkTile f (n, e, w, s) = ( if n then f else Z , if e then f else Z
-                        , if w then f else Z , if s then f else Z
-                        )
+mkTile' :: Fill -> Tile -> DisplayTile
+mkTile' f (n, e, w, s) = ( if n then f else Z , if e then f else Z
+                         , if w then f else Z , if s then f else Z
+                         )
 
 -- @return the described flooded $tile, at time $time, at distance $dist,
 --         with flow characteristics $flow.
-mkWaterTile :: Int -> Int -> Flow -> Tile -> DisplayTile
-mkWaterTile time dist flow tile
+mkWaterTile' :: Int -> Int -> Flow -> Tile -> DisplayTile
+mkWaterTile' time dist flow tile
   | (time `mod` sr) == (dist + 0 `mod` sr) = mkFlowTile In flow tile
-  | (time `mod` sr) == (dist + 1 `mod` sr) = mkTile B tile
-  | (time `mod` sr) == (dist + 2 `mod` sr) = mkTile B tile
-  | (time `mod` sr) == (dist + 3 `mod` sr) = mkTile B tile
+  | (time `mod` sr) == (dist + 1 `mod` sr) = mkTile' B tile
+  | (time `mod` sr) == (dist + 2 `mod` sr) = mkTile' B tile
+  | (time `mod` sr) == (dist + 3 `mod` sr) = mkTile' B tile
   | (time `mod` sr) == (dist + 4 `mod` sr) = mkFlowTile Out flow tile
-  | otherwise                              = mkTile A tile
+  | otherwise                              = mkTile' A tile
   where
     sr = getSyncRate
     mkFlowTile :: FlowDir -> Flow -> Tile -> DisplayTile
@@ -74,57 +75,59 @@ corpus :: String
 -- W      0--------------------------1--------------------------2--------------------------
 corpus = " ╵╹╶└┖╺┕┗╷│╿┌├┞┍┝┡╻╽┃┎┟┠┏┢┣╴┘┚─┴┸╼┶┺┐┤┦┬┼╀┮┾╄┒┧┨┰╁╂┲╆╊╸┙┛╾┵┹━┷┻┑┥┩┭┽╃┯┿╇┓┪┫┱╅╉┳╈╋"
 
-showTile :: Int -> Square -> String
-showTile time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
-                              + 3 * fromEnum e + 1 * fromEnum n)]
+showTile' :: Int -> Square -> String
+showTile' time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
+                               + 3 * fromEnum e + 1 * fromEnum n)]
   where
-    (n, e, w, s) = showTile' (sq ^. distance) (sq ^. flow)
+    (n, e, w, s) = showTile'' sq
 
-    showTile' :: Maybe Int -> Maybe Flow -> DisplayTile
-    showTile' Nothing Nothing         = mkTile A (sq ^. tile)
-    showTile' (Just dist) (Just flow) = mkWaterTile time dist flow (sq ^. tile)
+    showTile'' :: Square -> DisplayTile
+    showTile'' (Square { _distance = Nothing }) = mkTile' A (sq ^. tile)
+    showTile'' (Square {     _flow = Nothing }) = mkTile' A (sq ^. tile)
+    showTile'' (Square { _distance = Just d
+                       ,     _flow = Just f  }) = mkWaterTile' time d f (sq ^. tile)
 
 -- @return the rendered Board.
-drawBoard :: Int -> Board -> Widget ()
-drawBoard t b = hLimit getBoardWidth
+drawBoard' :: Int -> Board -> Widget ()
+drawBoard' t b = hLimit getBoardWidth
               $ vLimit getBoardHeight
-              $ vBox $ map (drawRow b) [0..getBoardHeight-1]
+              $ vBox $ map (drawRow' b) [0..getBoardHeight-1]
   where
     -- @return the row at the given index.
-    drawRow :: Board -> Int -> Widget ()
-    drawRow b h = hBox $ map (drawSquareAt b h) [0..getBoardWidth-1]
+    drawRow' :: Board -> Int -> Widget ()
+    drawRow' b h = hBox $ map (drawSquareAt' b h) [0..getBoardWidth-1]
 
     -- @return the square at the given coordinates.
-    drawSquareAt :: Board -> Int -> Int -> Widget ()
-    drawSquareAt b h w = drawSquare $ b ! (h,w)
+    drawSquareAt' :: Board -> Int -> Int -> Widget ()
+    drawSquareAt' b h w = drawSquare' $ b ! (h,w)
 
     -- @return the rendered Square.
-    drawSquare :: Square -> Widget ()
-    drawSquare s = squareStyle s $ squareContent s
+    drawSquare' :: Square -> Widget ()
+    drawSquare' s = squareStyle' s $ squareContent' s
 
     -- @return the custom styling for the Square.
-    squareStyle :: Square -> Widget () -> Widget ()
-    squareStyle Square { _hascursor = True   } = (withAttr $ attrName "bg-red")
-                                               . (withAttr $ attrName "fg-red")
-    squareStyle Square {  _distance = Just n } = withAttr $ attrName "fg-blue"
-    squareStyle _                              = id
+    squareStyle' :: Square -> Widget () -> Widget ()
+    squareStyle' Square { _hascursor = True   } = (withAttr $ attrName "bg-red")
+                                                . (withAttr $ attrName "fg-red")
+    squareStyle' Square {  _distance = Just n } = withAttr $ attrName "fg-blue"
+    squareStyle' _                              = id
 
     -- @return the text content of the Square.
-    squareContent :: Square -> Widget ()
-    squareContent sq
+    squareContent' :: Square -> Widget ()
+    squareContent' sq
       | sq ^. hascursor && isNullTile (sq ^. tile) = str "░"
-      | otherwise                                  = str $ showTile t sq
+      | otherwise                                  = str $ showTile' t sq
 
 -- @return the rendered Board, containing the Border and pipes at the center.
-drawGameState :: GameState -> Widget ()
-drawGameState gs = hBox [ corner_tl
+drawGameState' :: GameState -> Widget ()
+drawGameState' gs = hBox [ corner_tl
                         , border_line tap_x
                         , tap
                         , border_line (getBoardWidth - tap_x - 1)
                         , corner_tr
                         ]
                <=> hBox [ border_col getBoardHeight
-                        , drawBoard t (gs ^. board)
+                        , drawBoard' t (gs ^. board)
                         , border_col getBoardHeight
                         ]
                <=> hBox [ corner_bl
@@ -154,12 +157,11 @@ drawGameState gs = hBox [ corner_tl
 --         to reflect the new connectivity graph.
 recomputeFlow :: GameState -> GameState
 recomputeFlow gs = gs & board %~ (if entry_is_connected
-                                    then trickleFrom 1 S entry_xy
+                                    then trickleFrom 1 S tap_outlet_xy
                                     else id)
   where
-    (tN, _, _, _) = gs ^. board ^?! ix entry_xy . tile
-    entry_is_connected = tN
-    entry_xy = (\(h,w) -> (h+1, w)) $ gs ^. border . tapLocation
+    entry_is_connected = hasNorth $ gs ^. board ^?! ix tap_outlet_xy . tile
+    tap_outlet_xy = tapOutletXY gs
 
     -- @return the given Board, with all Squares adjacent to the the Square
     --         at the input coordinates explored / colored in.
@@ -187,21 +189,25 @@ recomputeFlow gs = gs & board %~ (if entry_is_connected
     --         given direction tested for connectivity / colored in.
     exploreDir :: Dir -> Int -> (Int, Int) -> Board -> Board
     exploreDir dir dist loc b
-      | canReach b loc dir = trickleFrom (succ dist) dir (adj dir loc) b
+      | canReach b loc dir = trickleFrom (succ dist) dir neighbor_xy b
       | otherwise          = b
+      where
+        neighbor = b ^?! ix neighbor_xy
+        neighbor_xy = adj dir loc
 
 -- @return the given GameState, with the location of the cursor set.
-recomputeCursor :: GameState -> GameState
-recomputeCursor gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
+recomputeCursor' :: GameState -> GameState
+recomputeCursor' gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
 
 -- @return the given GameState, with the _over field filled in via
 --         Util.isComplete.
-recomputeOver :: GameState -> GameState
-recomputeOver gs = gs & over .~ (isComplete gs)
+recomputeOver' :: GameState -> GameState
+recomputeOver' gs = gs & over .~ (isComplete gs)
+
 
 -- @return the given GameState, with all rendering artifacts cleared.
-resetAll :: GameState -> GameState
-resetAll gs = gs & board . each %~ resetSquare
+resetAll' :: GameState -> GameState
+resetAll' gs = gs & board . each %~ resetSquare
   where
     resetSquare :: Square -> Square
     resetSquare Square {_tile = t} = mkEmptySquare { _tile = t}

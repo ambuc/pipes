@@ -46,10 +46,10 @@ appEvent s _                                     = continue $ redraw s
 aMap :: AttrMap
 aMap = attrMap V.defAttr
      [ (attrName "bold", withStyle defAttr bold)
-     , (attrName "bg-blue", bg V.blue)
      , (attrName "fg-blue", fg V.blue)
-     , (attrName "bg-red", bg V.red)
      , (attrName "fg-red", fg V.red)
+     , (attrName "fg-white", fg V.white)
+     , (attrName "bg-red", bg V.red)
      ]
 
 mkApp :: App GameState Tick ()
