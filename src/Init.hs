@@ -1,9 +1,10 @@
 module Init
-   ( mkInitState
+   ( mkInitState, mkRandomBoard'
    ) where
 
 import           Control.Monad (replicateM)
 import           Data.Array    (Array, array, listArray, (!))
+import           Debug.Trace   (trace)
 import           Lens.Micro    ((%~), (&), (.~), (^.))
 import qualified System.Random as Random
 
@@ -13,14 +14,15 @@ import           Util
 
 mkInitState :: IO GameState
 mkInitState = do
-  init_border <- mkRandomBorder'
-  init_board  <- mkRandomBoard'
-  let init_cursor = (\(h,w) -> (h+1, w)) $ init_border ^. tapLocation
-  return GameState { _border = init_border
-                   ,  _board = init_board
-                   , _cursor = init_cursor
-                   ,   _time = 0
-                   ,   _over = False
+  (init_board, tapYX, drainYX) <- mkRandomBoard'
+  let init_cursor = (\(y,x) -> (y+1, x)) tapYX
+  return GameState {   _board = init_board
+                   ,     _tap = tapYX
+                   ,   _drain = drainYX
+                   ,  _cursor = init_cursor
+                   ,    _time = 0
+                   ,    _over = False
+                   , _maxdist = 0
                    }
 
 --------------------------------------------------------------------------------
@@ -37,26 +39,42 @@ randomWeights' = do
   return $ listArray ((0,0), (w-1,h-1)) wts
 
 
--- @return a random Border object with tap/drain locations.
-mkRandomBorder' :: IO Border
-mkRandomBorder' = do
-  n <- Random.randomRIO (0, getBoardWidth-1)
-  m <- Random.randomRIO (0, getBoardWidth-1)
-  return Border {   _tapLocation = (            -1, n)
-                , _drainLocation = (getBoardHeight, m)
-                }
-
-
 -- @return a shuffled Board.
-mkRandomBoard' :: IO Board
+mkRandomBoard' :: IO (Board, (Int, Int), (Int, Int))
 mkRandomBoard' = do
   random_squares <- replicateM (w * h) mkRandomSquare'
   -- arrays list numerically, i.e. first item of tuple constant, second item
   -- varying. if we want assocs to list over, we need to store (row, col)
-  return $ array ( (  0,   0)
-                 , (h-1, w-1) -- w x h
-                 ) $ zip [ (y,x) | x <- [0..w-1] , y <- [0..h-1]]
-                         random_squares
+  n <- Random.randomRIO (0, getBoardWidth - 1)
+  let tapYX@(_,tx)   = (-1, n)
+  let drainYX@(_,dx) = (getBoardHeight, getBoardWidth - n)
+  let main_board     = zip [ (y,x) | x <- [0..w-1], y <- [0..h-1] ]
+                           random_squares
+  let top_border     = zip [ (y,x) | x <- [0..w-1], y <- [-1], x /= tx ]
+                     $ repeat mkHorizontalBorderSquare
+  let bottom_border  = zip [ (y,x) | x <- [0..w-1], y <- [h], x /= dx ]
+                     $ repeat mkHorizontalBorderSquare
+  let east_border    = zip [ (y,x) | x <- [w], y <- [0..h-1] ]
+                     $ repeat mkVerticalBorderSquare
+  let west_border    = zip [ (y,x) | x <- [-1], y <- [0..h-1] ]
+                     $ repeat mkVerticalBorderSquare
+  let tl_border      = [ ((-1,-1),    mkTLBorderSquare) ]
+  let tr_border      = [ ((-1, w),    mkTRBorderSquare) ]
+  let bl_border      = [ (( h,-1),    mkBLBorderSquare) ]
+  let br_border      = [ (( h, w),    mkBRBorderSquare) ]
+  let tap_border     = [ (  tapYX,   mkTapBorderSquare) ]
+  let drain_border   = [ (drainYX, mkDrainBorderSquare) ]
+  let main_board     = zip [ (y,x) | x <- [0..w-1] , y <- [0..h-1]]
+                           random_squares
+  let all_squares    = main_board
+                       ++ top_border ++ bottom_border
+                       ++ east_border ++ west_border
+                       ++ tl_border ++ tr_border ++ bl_border ++ br_border
+                       ++ tap_border ++ drain_border
+  let board          = array ( (-1, -1)
+                             , ( h,  w) -- w x h
+                             ) all_squares
+  return (board, tapYX, drainYX)
   where
     (h,w) = getBoardBounds
 

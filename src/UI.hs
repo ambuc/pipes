@@ -10,8 +10,9 @@ import           Brick.Widgets.Center       (center)
 import           Brick.Widgets.Core         (fill, hBox, hLimit, str, vBox,
                                              vLimit, withAttr, withBorderStyle,
                                              (<+>), (<=>))
-import           Data.Array                 ((!))
-import           Data.Maybe                 (isJust)
+import           Data.Array                 (elems, (!))
+import           Data.Maybe                 (fromMaybe, isJust)
+import           Debug.Trace                (trace)
 import           Lens.Micro                 ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC             (each, ix)
 
@@ -28,15 +29,18 @@ render gs = [ withBorderStyle unicode
 -- @return the given GameState, with all visual elements re-rendered as a
 --         function of the current cursor / tile configuration.
 redraw :: GameState -> GameState
-redraw = recomputeOver'
+redraw = recomputeTap'
+       . recomputeOver'
        . recomputeCursor'
-       . recomputeFlow
+       . recomputeMaxDist'
+       . recomputeFlow'
        . resetAll'
 
 --------------------------------------------------------------------------------
 
 type DisplayTile = (Fill, Fill, Fill, Fill)
-data Fill        = Z | A | B deriving (Bounded, Enum) -- zilch, average, bold
+data Fill        = Z | A | B
+                   deriving (Bounded, Enum) -- zilch, average, bold, dashed(2,3,4)
 
 -- @return the described Tile, with f as the default fill.
 mkTile' :: Fill -> Tile -> DisplayTile
@@ -46,8 +50,8 @@ mkTile' f (n, e, w, s) = ( if n then f else Z , if e then f else Z
 
 -- @return the described flooded $tile, at time $time, at distance $dist,
 --         with flow characteristics $flow.
-mkWaterTile' :: Int -> Int -> Flow -> Tile -> DisplayTile
-mkWaterTile' time dist flow tile
+mkWaterTile' :: Int -> Int -> Int -> Flow -> Tile -> DisplayTile
+mkWaterTile' max_dist time dist flow tile
   | (time `mod` sr) == (dist + 0 `mod` sr) = mkFlowTile In flow tile
   | (time `mod` sr) == (dist + 1 `mod` sr) = mkTile' B tile
   | (time `mod` sr) == (dist + 2 `mod` sr) = mkTile' B tile
@@ -55,7 +59,7 @@ mkWaterTile' time dist flow tile
   | (time `mod` sr) == (dist + 4 `mod` sr) = mkFlowTile Out flow tile
   | otherwise                              = mkTile' A tile
   where
-    sr = getSyncRate
+    sr = max_dist + 5 -- num frames
     mkFlowTile :: FlowDir -> Flow -> Tile -> DisplayTile
     mkFlowTile dir (fn, fe, fw, fs) (n, e, w, s) = ( mkFill dir fn n
                                                    , mkFill dir fe e
@@ -74,9 +78,9 @@ corpus :: String
 -- W      0--------------------------1--------------------------2--------------------------
 corpus = " ╵╹╶└┖╺┕┗╷│╿┌├┞┍┝┡╻╽┃┎┟┠┏┢┣╴┘┚─┴┸╼┶┺┐┤┦┬┼╀┮┾╄┒┧┨┰╁╂┲╆╊╸┙┛╾┵┹━┷┻┑┥┩┭┽╃┯┿╇┓┪┫┱╅╉┳╈╋"
 
-showTile' :: Int -> Square -> String
-showTile' time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
-                               + 3 * fromEnum e + 1 * fromEnum n)]
+showTile' :: Int -> Int -> Square -> String
+showTile' max_dist time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
+                                        + 3 * fromEnum e + 1 * fromEnum n)]
   where
     (n, e, w, s) = showTile'' sq
 
@@ -84,17 +88,17 @@ showTile' time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
     showTile'' Square { _distance = Nothing } = mkTile' A (sq ^. tile)
     showTile'' Square {     _flow = Nothing } = mkTile' A (sq ^. tile)
     showTile'' Square { _distance = Just d
-                      ,     _flow = Just f  } = mkWaterTile' time d f (sq ^. tile)
+                      ,     _flow = Just f  } = mkWaterTile' max_dist time d f (sq ^. tile)
 
 -- @return the rendered Board.
-drawBoard' :: Int -> Board -> Widget ()
-drawBoard' t b = hLimit getBoardWidth
-              $ vLimit getBoardHeight
-              $ vBox $ map (drawRow' b) [0..getBoardHeight-1]
+drawBoard' :: Int -> Int -> Board -> Widget ()
+drawBoard' max_dist t b = hLimit (getBoardWidth + 2)
+                        $ vLimit (getBoardHeight + 2)
+                        $ vBox $ map (drawRow' b) [-1..getBoardHeight]
   where
     -- @return the row at the given index.
     drawRow' :: Board -> Int -> Widget ()
-    drawRow' b h = hBox $ map (drawSquareAt' b h) [0..getBoardWidth-1]
+    drawRow' b h = hBox $ map (drawSquareAt' b h) [-1..getBoardWidth]
 
     -- @return the square at the given coordinates.
     drawSquareAt' :: Board -> Int -> Int -> Widget ()
@@ -115,52 +119,30 @@ drawBoard' t b = hLimit getBoardWidth
     squareContent' :: Square -> Widget ()
     squareContent' sq
       | sq ^. hascursor && isNullTile (sq ^. tile) = str "░"
-      | otherwise                                  = str $ showTile' t sq
+      | otherwise                                  = str $ showTile' max_dist t sq
 
 -- @return the rendered Board, containing the Border and pipes at the center.
 drawGameState' :: GameState -> Widget ()
-drawGameState' gs = hBox [ corner_tl
-                        , border_line tap_x
-                        , tap
-                        , border_line (getBoardWidth - tap_x - 1)
-                        , corner_tr
-                        ]
-               <=> hBox [ border_col getBoardHeight
-                        , drawBoard' t (gs ^. board)
-                        , border_col getBoardHeight
-                        ]
-               <=> hBox [ corner_bl
-                        , border_line drain_x
-                        , drain
-                        , border_line (getBoardWidth - drain_x - 1)
-                        , corner_br
-                        ]
-  where
-    t       = gs ^. time
-    is_over = gs ^. over
-    (_,   tap_x) = gs ^. (border . tapLocation)
-    (_, drain_x) = gs ^. (border . drainLocation)
-    tap   = but_blue $ str "┳"
-    drain = maybe_blue $ str "┻"
-    corner_tl = maybe_blue $ str "┏"
-    corner_tr = maybe_blue $ str "┓"
-    corner_bl = maybe_blue $ str "┗"
-    corner_br = maybe_blue $ str "┛"
-    border_line n = maybe_blue $ hLimit n $ vLimit 1 $ fill '━'
-    border_col  n = maybe_blue $ vLimit n $ hLimit 1 $ fill '┃'
+drawGameState' gs = drawBoard' (gs ^. maxdist) (gs ^. time) (gs ^. board)
 
-    maybe_blue = if is_over then but_blue else id
-    but_blue = withAttr $ attrName "fg-blue"
+-- @return the given GameState, with the _maxdist field updated
+--         with the new maximum value of any Square's _distance field, with
+--         a default of zero.
+recomputeMaxDist' :: GameState -> GameState
+recomputeMaxDist' gs = gs & maxdist .~ new_max_dist
+  where new_max_dist = fromMaybe 0 $ maximum $ map (^. distance)
+                     $ elems (gs ^. board)
 
 -- @return the given GameState, with all _flowstate fields updated
 --         to reflect the new connectivity graph.
-recomputeFlow :: GameState -> GameState
-recomputeFlow gs = gs & board %~ (if entry_is_connected
-                                    then trickleFrom 1 S tap_outlet_xy
-                                    else id)
+recomputeFlow' :: GameState -> GameState
+recomputeFlow' gs = gs & board %~ trickleFrom 0 S (tapYX gs)
+                                  --(if entry_is_connected
+                                  --  then trickleFrom 0 S tap_outlet_yx
+                                  --  else id)
   where
-    entry_is_connected = hasNorth $ gs ^. board ^?! ix tap_outlet_xy . tile
-    tap_outlet_xy = tapOutletXY gs
+    --entry_is_connected = hasNorth $ gs ^. board ^?! ix tap_outlet_yx . tile
+    --tap_outlet_yx = tapOutletYX gs
 
     -- @return the given Board, with all Squares adjacent to the the Square
     --         at the input coordinates explored / colored in.
@@ -188,11 +170,11 @@ recomputeFlow gs = gs & board %~ (if entry_is_connected
     --         given direction tested for connectivity / colored in.
     exploreDir :: Dir -> Int -> (Int, Int) -> Board -> Board
     exploreDir dir dist loc b
-      | canReach b loc dir = trickleFrom (succ dist) dir neighbor_xy b
+      | canReach b loc dir = trickleFrom (succ dist) dir neighbor_yx b
       | otherwise          = b
       where
-        neighbor = b ^?! ix neighbor_xy
-        neighbor_xy = adj dir loc
+        neighbor = b ^?! ix neighbor_yx
+        neighbor_yx = adj dir loc
 
 -- @return the given GameState, with the location of the cursor set.
 recomputeCursor' :: GameState -> GameState
@@ -203,6 +185,11 @@ recomputeCursor' gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
 recomputeOver' :: GameState -> GameState
 recomputeOver' gs = gs & over .~ isComplete gs
 
+recomputeTap' :: GameState -> GameState
+recomputeTap' gs = if gs ^. over
+                     then  gs & board
+                         . ix (gs ^. tap) . tile .~ (False, True, True, True)
+                     else gs
 
 -- @return the given GameState, with all rendering artifacts cleared.
 resetAll' :: GameState -> GameState

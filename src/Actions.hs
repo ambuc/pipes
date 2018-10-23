@@ -8,12 +8,12 @@ import           Lens.Micro     ((%~), (&), (^.))
 import           Lens.Micro.GHC (ix)
 
 import           Types
-import           Util           (adj, rotate)
+import           Util           (cursorAdj, rotate)
 
 -- @return the argument GameState, with the cursor moved one unit in the given
 --         direction.
 move :: Dir -> GameState -> GameState
-move dir gs = gs & cursor %~ adj dir
+move dir gs = gs & cursor %~ cursorAdj dir
 
 -- @return the argument GameState, with the Tile under the Cursor rotated in the
 --         given rotational direction.

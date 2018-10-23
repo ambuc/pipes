@@ -13,18 +13,18 @@ data Square      = Square {        _tile :: Tile
                           ,        _flow :: Maybe Flow
                           ,    _distance :: Maybe Int
                           ,   _hascursor :: Bool
+                          ,    _isborder :: Bool
                           } deriving (Show)
 type Board       = Array (Int, Int) Square
-data Border      = Border {   _tapLocation :: (Int,Int)
-                          , _drainLocation :: (Int,Int)
-                          }
-data GameState   = GameState {  _board :: Board
-                             , _border :: Border
-                             , _cursor :: (Int, Int)
-                             ,   _time :: Int
-                             ,   _over :: Bool
+data GameState   = GameState {   _board :: Board
+                             ,     _tap :: (Int, Int)
+                             ,   _drain :: (Int, Int)
+                             ,  _cursor :: (Int, Int)
+                             ,    _time :: Int
+                             ,    _over :: Bool
+                             , _maxdist :: Int
                              }
 
 makeLenses ''Square
-makeLenses ''Border
+-- makeLenses ''Border
 makeLenses ''GameState
