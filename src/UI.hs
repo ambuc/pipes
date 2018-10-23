@@ -140,13 +140,7 @@ recomputeMaxDist' gs = gs & maxdist .~ new_max_dist
 --         to reflect the new connectivity graph.
 recomputeFlow' :: GameState -> GameState
 recomputeFlow' gs = gs & board %~ trickleFrom 0 S (tapYX gs)
-                                  --(if entry_is_connected
-                                  --  then trickleFrom 0 S tap_outlet_yx
-                                  --  else id)
   where
-    --entry_is_connected = hasNorth $ gs ^. board ^?! ix tap_outlet_yx . tile
-    --tap_outlet_yx = tapOutletYX gs
-
     -- @return the given Board, with all Squares adjacent to the the Square
     --         at the input coordinates explored / colored in.
     trickleFrom :: Int -> Dir -> (Int, Int) -> Board -> Board
@@ -188,10 +182,13 @@ recomputeCursor' gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
 recomputeOver' :: GameState -> GameState
 recomputeOver' gs = gs & over .~ isComplete gs
 
+-- @return the given GameState, except if the game has been won, the tap tile is
+--         redrawn as a T.
 recomputeTap' :: GameState -> GameState
 recomputeTap' gs = if gs ^. over
                      then  gs & board
-                         . ix (gs ^. tap) . tile .~ (False, True, True, True)
+                         . ix (gs ^. tap)
+                         . tile .~ (False, True, True, True)
                      else gs
 
 -- @return the given GameState, with all rendering artifacts cleared.

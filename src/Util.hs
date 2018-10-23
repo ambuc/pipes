@@ -116,15 +116,6 @@ mkDrainBorderSquare      = mkBorderSquare { _tile = (True, True, True, False) }
 tapYX :: GameState -> (Int, Int)
 tapYX gs = gs ^. tap
 
-tapOutletYX :: GameState -> (Int, Int)
-tapOutletYX gs = (t_y + 1, t_x)
-  where t@(t_y, t_x) = gs ^. tap
-
-drainInletYX :: GameState -> (Int, Int)
-drainInletYX gs = (d_y - 1, d_x)
-  where d@(d_y, d_x) = gs ^. drain
-
 isComplete :: GameState -> Bool
-isComplete gs = isJust (drain_inlet ^. distance)
-             && hasSouth (drain_inlet ^. tile)
-  where drain_inlet = gs ^. board ^?! ix (drainInletYX gs)
+isComplete gs = isJust (drain_sq ^. distance)
+  where drain_sq = gs ^. board ^?! ix (gs ^. drain)
