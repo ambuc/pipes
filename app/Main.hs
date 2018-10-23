@@ -6,7 +6,7 @@ import           Brick.Main                  (App (App), appAttrMap,
                                               appChooseCursor, appDraw,
                                               appHandleEvent, appStartEvent,
                                               continue, customMain, halt,
-                                              showFirstCursor)
+                                              showFirstCursor, suspendAndResume)
 import           Brick.Types                 (BrickEvent (AppEvent, VtyEvent),
                                               EventM, Next, Widget)
 import           Brick.Util                  (bg, fg, on)
@@ -41,6 +41,18 @@ appEvent s (VtyEvent (V.EvKey (V.KChar 's') [])) = continue $ redraw $ move S s
 appEvent s (VtyEvent (V.EvKey (V.KChar 'a') [])) = continue $ redraw $ move W s
 appEvent s (VtyEvent (V.EvKey (V.KChar 'd') [])) = continue $ redraw $ move E s
 appEvent s (VtyEvent (V.EvKey (V.KChar ' ') [])) = continue $ redraw $ spin s
+appEvent s (VtyEvent (V.EvKey (V.KChar '1') [])) =
+                          if s ^. over
+                            then suspendAndResume $ redraw <$> mkInitState Easy
+                            else continue (redraw s)
+appEvent s (VtyEvent (V.EvKey (V.KChar '2') [])) =
+                          if s ^. over
+                            then suspendAndResume $ redraw <$> mkInitState Mid
+                            else continue (redraw s)
+appEvent s (VtyEvent (V.EvKey (V.KChar '3') [])) =
+                          if s ^. over
+                            then suspendAndResume $ redraw <$> mkInitState Hard
+                            else continue (redraw s)
 appEvent s _                                     = continue $ redraw s
 
 aMap :: AttrMap
@@ -74,5 +86,5 @@ main = do
 
   let init_vty = V.mkVty =<< V.standardIOConfig
   let init_app = mkApp
-  init_state <- redraw <$> mkInitState
+  init_state <- redraw <$> mkInitState Easy
   void $ customMain init_vty (Just chan) init_app init_state

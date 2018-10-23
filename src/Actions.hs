@@ -23,8 +23,10 @@ spin :: GameState -> GameState
 spin gs = if gs ^. over
             then gs
             else gs & board . ix (gs ^. cursor) . tile %~ rotate
+                    & moves %~ succ
 
 -- @return the given GameState, ticked forward one time unit.
 tick :: GameState -> GameState
 tick gs = gs & time %~ succ
+             & timer %~ (if gs ^. over then id else succ)
 

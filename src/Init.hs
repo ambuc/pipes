@@ -12,17 +12,20 @@ import           Magic         (getBoardBounds, getBoardHeight, getBoardWidth)
 import           Types
 import           Util
 
-mkInitState :: IO GameState
-mkInitState = do
-  (init_board, tapYX, drainYX) <- mkRandomBoard'
+mkInitState :: Difficulty -> IO GameState
+mkInitState difficulty = do
+  (init_board, tapYX, drainYX) <- mkRandomBoard' difficulty
   let init_cursor = (\(y,x) -> (y+1, x)) tapYX
-  return GameState {   _board = init_board
-                   ,     _tap = tapYX
-                   ,   _drain = drainYX
-                   ,  _cursor = init_cursor
-                   ,    _time = 0
-                   ,    _over = False
-                   , _maxdist = 0
+  return GameState {      _board = init_board
+                   ,        _tap = tapYX
+                   ,      _drain = drainYX
+                   ,     _cursor = init_cursor
+                   ,       _time = 0
+                   ,      _timer = 0
+                   ,       _over = False
+                   ,    _maxdist = 0
+                   ,      _moves = 0
+                   , _difficulty = Easy
                    }
 
 --------------------------------------------------------------------------------
@@ -40,12 +43,11 @@ randomWeights' = do
 
 
 -- @return a shuffled Board.
-mkRandomBoard' :: IO (Board, (Int, Int), (Int, Int))
-mkRandomBoard' = do
-  random_squares <- replicateM (w * h) mkRandomSquare'
-  -- arrays list numerically, i.e. first item of tuple constant, second item
-  -- varying. if we want assocs to list over, we need to store (row, col)
-  n <- Random.randomRIO (0, getBoardWidth - 1)
+mkRandomBoard' :: Difficulty -> IO (Board, (Int, Int), (Int, Int))
+mkRandomBoard' difficulty = do
+  random_squares <- replicateM (w * h) $ mkRandomSquare' difficulty
+  n              <- Random.randomRIO (0, getBoardWidth - 1)
+
   let tapYX@(_,tx)   = (-1, n)
   let drainYX@(_,dx) = (getBoardHeight, getBoardWidth - n - 1)
   let main_board     = zip [ (y,x) | x <- [0..w-1], y <- [0..h-1] ]
@@ -67,10 +69,11 @@ mkRandomBoard' = do
   let main_board     = zip [ (y,x) | x <- [0..w-1] , y <- [0..h-1]]
                            random_squares
   let all_squares    = main_board
-                       ++ top_border ++ bottom_border
-                       ++ east_border ++ west_border
-                       ++ tl_border ++ tr_border ++ bl_border ++ br_border
-                       ++ tap_border ++ drain_border
+                       ++  top_border ++ bottom_border
+                       ++ east_border ++   west_border
+                       ++   tl_border ++     tr_border
+                       ++   bl_border ++     br_border
+                       ++  tap_border ++  drain_border
   let board          = array ( (-1, -1)
                              , ( h,  w) -- w x h
                              ) all_squares
@@ -79,19 +82,18 @@ mkRandomBoard' = do
     (h,w) = getBoardBounds
 
 -- @return a random Square.
-mkRandomSquare' :: IO Square
-mkRandomSquare' = do
-  tile <- mkRandomTile'
+mkRandomSquare' :: Difficulty -> IO Square
+mkRandomSquare' difficulty = do
+  tile <- mkRandomTile' difficulty
   return $ mkEmptySquare { _tile = tile }
-  where
-    -- TODO(ambuc): This could have a tile distribution.
-    -- @return a random Tile at a random rotation.
-    mkRandomTile' :: IO Tile
-    mkRandomTile' = do
-      random_enum <- Random.randomRIO (1, fromEnum (maxBound :: Shape))
-      random_rot  <- Random.randomRIO (0, 3)
-      let tile = shapeToTile $ toEnum random_enum
-      let rotated_tile = iterate rotate tile !! random_rot
-      return rotated_tile
+
+mkRandomTile' :: Difficulty -> IO Tile
+mkRandomTile' difficulty = do
+  let base_tile = baseTileEnumFromDifficulty difficulty
+  random_enum <- Random.randomRIO (base_tile, fromEnum (maxBound :: Shape))
+  random_rot  <- Random.randomRIO (0, 3)
+  let tile = shapeToTile $ toEnum random_enum
+  let rotated_tile = iterate rotate tile !! random_rot
+  return rotated_tile
 
 

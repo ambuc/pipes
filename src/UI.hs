@@ -5,11 +5,13 @@ module UI
 
 import           Brick.AttrMap              (attrName)
 import           Brick.Types                (Widget)
+import           Brick.Widgets.Border       (hBorder, vBorder)
 import           Brick.Widgets.Border.Style (unicode)
-import           Brick.Widgets.Center       (center)
-import           Brick.Widgets.Core         (fill, hBox, hLimit, str, vBox,
-                                             vLimit, withAttr, withBorderStyle,
-                                             (<+>), (<=>))
+import           Brick.Widgets.Center       (center, hCenter, vCenter)
+import           Brick.Widgets.Core         (emptyWidget, fill, hBox, hLimit,
+                                             padLeftRight, str, vBox, vLimit,
+                                             withAttr, withBorderStyle, (<+>),
+                                             (<=>))
 import           Data.Array                 (elems, (!))
 import           Data.Maybe                 (fromMaybe, isJust)
 import           Debug.Trace                (trace)
@@ -23,8 +25,32 @@ import           Util
 -- @return the rendered GameState.
 render :: GameState -> [Widget ()]
 render gs = [ withBorderStyle unicode
-            $ center $ drawGameState' gs
+            $ center
+            $ vLimit (getBoardHeight + 2)
+            $ hLimit (getBoardWidth + 15)
+            $ hCenter
+            $ hBox
+                [ drawGameState' gs
+                , padLeftRight 1 vBorder
+                , hLimit 10
+                  $   str ("Moves " ++ show (gs ^. moves))
+                  <=> hBorder
+                  <=> str (" Time " ++ show (gs ^. timer `div` 20))
+                  <=> if gs ^. over
+                        then new_game_instructions
+                        else emptyWidget
+                ]
             ]
+  where
+    new_game_instructions = vBox [ hBorder
+                                 , str "You win!"
+                                 , str "Press:"
+                                 , str " 1 - Easy"
+                                 , str " 2 - Mid"
+                                 , str " 3 - Hard"
+                                 , str "for a new"
+                                 , str "game."
+                                 ]
 
 -- @return the given GameState, with all visual elements re-rendered as a
 --         function of the current cursor / tile configuration.
@@ -74,6 +100,8 @@ mkWaterTile' max_dist time dist flow tile
     mkFill _ _ False = Z
     mkFill a b _     = if a == b then A else B
 
+-- Box-drawing characters:
+-- https://en.wikipedia.org/wiki/Box-drawing_character
 corpus :: String
 -- N      012012012012012012012012012012012012012012012012012012012012012012012012012012012
 -- E      0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--0--1--2--

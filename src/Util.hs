@@ -119,3 +119,8 @@ tapYX gs = gs ^. tap
 isComplete :: GameState -> Bool
 isComplete gs = isJust (drain_sq ^. distance)
   where drain_sq = gs ^. board ^?! ix (gs ^. drain)
+
+baseTileEnumFromDifficulty :: Difficulty -> Int
+baseTileEnumFromDifficulty Easy = 2
+baseTileEnumFromDifficulty Mid  = 1
+baseTileEnumFromDifficulty Hard = 0
