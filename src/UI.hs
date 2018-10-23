@@ -26,9 +26,7 @@ import           Util
 render :: GameState -> [Widget ()]
 render gs = [ withBorderStyle unicode
             $ center
-            $ vLimit (getBoardHeight + 2)
-            $ hLimit (getBoardWidth + 15)
-            $ hCenter
+            $ vLimit (getBoardHeight + 2) $ hLimit (getBoardWidth + 15)
             $ hBox
                 [ drawGameState' gs
                 , padLeftRight 1 vBorder
@@ -36,21 +34,18 @@ render gs = [ withBorderStyle unicode
                   $   str ("Moves " ++ show (gs ^. moves))
                   <=> hBorder
                   <=> str (" Time " ++ show (gs ^. timer `div` 20))
-                  <=> if gs ^. over
-                        then new_game_instructions
-                        else emptyWidget
+                  <=> if gs ^. over then new_game_instructions else emptyWidget
                 ]
             ]
-  where
-    new_game_instructions = vBox [ hBorder
-                                 , str "You win!"
-                                 , str "Press:"
-                                 , str " 1 - Easy"
-                                 , str " 2 - Mid"
-                                 , str " 3 - Hard"
-                                 , str "for a new"
-                                 , str "game."
-                                 ]
+  where new_game_instructions = vBox [ hBorder
+                                     , str "You win!"
+                                     , str "Press:"
+                                     , str " 1 - Easy"
+                                     , str " 2 - Mid"
+                                     , str " 3 - Hard"
+                                     , str "for a new"
+                                     , str "game."
+                                     ]
 
 -- @return the given GameState, with all visual elements re-rendered as a
 --         function of the current cursor / tile configuration.
@@ -89,6 +84,8 @@ mkWaterTile' max_dist time dist flow tile
   | otherwise                              = mkTile' A tile
   where
     sr = max_dist + 5 -- num frames
+    -- @return the DisplayTile described by the given Flow superimposed on the
+    --         given Tile.
     mkFlowTile :: FlowDir -> Flow -> Tile -> DisplayTile
     mkFlowTile dir (fn, fe, fw, fs) (n, e, w, s) = ( mkFill dir fn n
                                                    , mkFill dir fe e
@@ -96,6 +93,8 @@ mkWaterTile' max_dist time dist flow tile
                                                    , mkFill dir fs s
                                                    )
 
+    -- @return the Fill described by the incoming FlowDir, the outgoing FlowDir,
+    --         and whether or not that leg of the Tile is present.
     mkFill :: FlowDir -> FlowDir -> Bool -> Fill
     mkFill _ _ False = Z
     mkFill a b _     = if a == b then A else B
@@ -109,12 +108,18 @@ corpus :: String
 -- W      0--------------------------1--------------------------2--------------------------
 corpus = " ╵╹╶└┖╺┕┗╷│╿┌├┞┍┝┡╻╽┃┎┟┠┏┢┣╴┘┚─┴┸╼┶┺┐┤┦┬┼╀┮┾╄┒┧┨┰╁╂┲╆╊╸┙┛╾┵┹━┷┻┑┥┩┭┽╃┯┿╇┓┪┫┱╅╉┳╈╋"
 
+-- Helper function for squareContent.
+-- @return the string content of a Tile, given its distance from the tap, the
+--         current time, and the Square. Uses showTile'' to compute the fills
+--         of the given Square.
 showTile' :: Int -> Int -> Square -> String
 showTile' max_dist time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
                                         + 3 * fromEnum e + 1 * fromEnum n)]
   where
     (n, e, w, s) = showTile'' sq
 
+    -- Helper function for showTile'.
+    -- @return the DisplayTile with all Fill properties for the given Square.
     showTile'' :: Square -> DisplayTile
     showTile'' Square { _distance = Nothing } = mkTile' A (sq ^. tile)
     showTile'' Square {     _flow = Nothing } = mkTile' A (sq ^. tile)
@@ -148,9 +153,9 @@ drawBoard' max_dist t b = hLimit (getBoardWidth + 2)
 
     -- @return the text content of the Square.
     squareContent' :: Square -> Widget ()
-    squareContent' sq
-      | sq ^. hascursor && isNullTile (sq ^. tile) = str "░"
-      | otherwise                                  = str $ showTile' max_dist t sq
+    squareContent' sq = if sq ^. hascursor && isNullTile (sq ^. tile)
+                          then str "░"
+                          else str $ showTile' max_dist t sq
 
 -- @return the rendered Board, containing the Border and pipes at the center.
 drawGameState' :: GameState -> Widget ()
@@ -179,6 +184,8 @@ recomputeFlow' gs = gs & board %~ trickleFrom 0 S (tapYX gs)
                       $ ix (h,w) . distance .~ Just dist
                       $ b
       where
+        -- @return whether or not the adjacent cell should be visited.
+        --         Implements some kind of A*, probably.
         shouldVisit = (dist >= getMaxExploreDist)
                    || ( isJust (b ^?! ix (h,w) . distance)
                              && b ^?! ix (h,w) . distance <= Just dist)

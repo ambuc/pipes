@@ -12,6 +12,7 @@ import           Magic         (getBoardBounds, getBoardHeight, getBoardWidth)
 import           Types
 import           Util
 
+-- @return the initial GameState, given an input Difficulty.
 mkInitState :: Difficulty -> IO GameState
 mkInitState difficulty = do
   (init_board, tapYX, drainYX) <- mkRandomBoard' difficulty
@@ -28,21 +29,7 @@ mkInitState difficulty = do
                    , _difficulty = Easy
                    }
 
---------------------------------------------------------------------------------
-
-randomDoubles :: Int -> IO [Double]
-randomDoubles n = do
-  gen <- Random.getStdGen
-  return $ take n $ Random.randomRs (0.0, 1.0) gen
-
-randomWeights' :: IO (Array (Int, Int) Double)
-randomWeights' = do
-  let (w,h) = getBoardBounds
-  wts <- randomDoubles (w*h)
-  return $ listArray ((0,0), (w-1,h-1)) wts
-
-
--- @return a shuffled Board.
+-- @return a randomly-generated Board, given an input Difficulty.
 mkRandomBoard' :: Difficulty -> IO (Board, (Int, Int), (Int, Int))
 mkRandomBoard' difficulty = do
   random_squares <- replicateM (w * h) $ mkRandomSquare' difficulty
@@ -87,6 +74,7 @@ mkRandomSquare' difficulty = do
   tile <- mkRandomTile' difficulty
   return $ mkEmptySquare { _tile = tile }
 
+-- @return a random Tile.
 mkRandomTile' :: Difficulty -> IO Tile
 mkRandomTile' difficulty = do
   let base_tile = baseTileEnumFromDifficulty difficulty

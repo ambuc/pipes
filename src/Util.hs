@@ -7,6 +7,7 @@ import           Lens.Micro.GHC (ix)
 import           Magic          (getBoardHeight, getBoardWidth)
 import           Types
 
+-- Hard-coded tile options. Picked from via Enum and translated via shapeToTile.
 data Shape = Null | Nub | Line | Bend | Tee | Cross deriving (Bounded, Enum)
 
 -- @return whether or not the input coordinate is within the game board
@@ -51,18 +52,6 @@ inv W = E
 -- @return a rotated Tile
 rotate (n, e, w, s) = (w, n, s, e)
 
-has' :: Dir -> Tile -> Bool
-has' N (x,_,_,_) = x
-has' E (_,x,_,_) = x
-has' W (_,_,x,_) = x
-has' S (_,_,_,x) = x
-
-hasNorth :: Tile -> Bool
-hasNorth = has' N
-
-hasSouth :: Tile -> Bool
-hasSouth = has' S
-
 -- @return the coordinates adjacent to the input coordinate in the given
 --         direction.
 adj :: Dir -> (Int, Int) -> (Int, Int)
@@ -71,6 +60,8 @@ adj S (h,w) = (min getBoardHeight (h+1), w)
 adj E (h,w) = (h, min getBoardWidth (w+1))
 adj W (h,w) = (h, max (-1) (w-1))
 
+-- @return the same as adj (above), but limited by which cells the cursor is
+--         allowed to visit.
 cursorAdj :: Dir -> (Int, Int) -> (Int, Int)
 cursorAdj N (h,w) = (max 0 (h-1), w)
 cursorAdj S (h,w) = (min (getBoardHeight-1) (h+1), w)
@@ -101,8 +92,10 @@ mkEmptySquare = Square {        _tile = (False, False, False, False)
                        ,   _hascursor = False
                        ,    _isborder = False
                        }
-mkBorderSquare = mkEmptySquare {_isborder = True }
--- N E W S
+
+-- A set of hard-coded tiles for drawing the game border, which are functional
+-- Squares and can recieve flow.
+mkBorderSquare           = mkEmptySquare {_isborder = True }
 mkHorizontalBorderSquare = mkBorderSquare { _tile = (False, True, True, False) }
 mkVerticalBorderSquare   = mkBorderSquare { _tile = (True, False, False, True) }
 mkTLBorderSquare         = mkBorderSquare { _tile = (False, True, False, True) }
@@ -112,14 +105,17 @@ mkBRBorderSquare         = mkBorderSquare { _tile = (True, False, True, False) }
 mkTapBorderSquare        = mkBorderSquare { _tile = (True, False, False, True) }
 mkDrainBorderSquare      = mkBorderSquare { _tile = (True, True, True, False) }
 
-
+-- @return the (Y,X) coordinates of the _tap field of the given GameState.
 tapYX :: GameState -> (Int, Int)
 tapYX gs = gs ^. tap
 
+-- @return bool, whether or not the game has been won (i.e. the drain is
+--         reached)
 isComplete :: GameState -> Bool
 isComplete gs = isJust (drain_sq ^. distance)
   where drain_sq = gs ^. board ^?! ix (gs ^. drain)
 
+-- Helper function for Difficulty.
 baseTileEnumFromDifficulty :: Difficulty -> Int
 baseTileEnumFromDifficulty Easy = 2
 baseTileEnumFromDifficulty Mid  = 1
