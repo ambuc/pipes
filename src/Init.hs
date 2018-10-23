@@ -47,7 +47,7 @@ mkRandomBoard' = do
   -- varying. if we want assocs to list over, we need to store (row, col)
   n <- Random.randomRIO (0, getBoardWidth - 1)
   let tapYX@(_,tx)   = (-1, n)
-  let drainYX@(_,dx) = (getBoardHeight, getBoardWidth - n)
+  let drainYX@(_,dx) = (getBoardHeight, getBoardWidth - n - 1)
   let main_board     = zip [ (y,x) | x <- [0..w-1], y <- [0..h-1] ]
                            random_squares
   let top_border     = zip [ (y,x) | x <- [0..w-1], y <- [-1], x /= tx ]
@@ -88,7 +88,7 @@ mkRandomSquare' = do
     -- @return a random Tile at a random rotation.
     mkRandomTile' :: IO Tile
     mkRandomTile' = do
-      random_enum <- Random.randomRIO (4,4) -- (1, fromEnum (maxBound :: Shape))
+      random_enum <- Random.randomRIO (1, fromEnum (maxBound :: Shape))
       random_rot  <- Random.randomRIO (0, 3)
       let tile = shapeToTile $ toEnum random_enum
       let rotated_tile = iterate rotate tile !! random_rot
