@@ -29,12 +29,15 @@ render gs = [ withBorderStyle unicode
 -- @return the given GameState, with all visual elements re-rendered as a
 --         function of the current cursor / tile configuration.
 redraw :: GameState -> GameState
-redraw = recomputeTap'
-       . recomputeOver'
-       . recomputeCursor'
-       . recomputeMaxDist'
-       . recomputeFlow'
-       . resetAll'
+redraw gs = if gs ^. over
+              then gs
+              else ( recomputeTap'
+                   . recomputeOver'
+                   . recomputeCursor'
+                   . recomputeMaxDist'
+                   . recomputeFlow'
+                   . resetAll'
+                   ) gs
 
 --------------------------------------------------------------------------------
 
