@@ -1,10 +1,10 @@
 module Util where
 
-import           Data.Maybe     (isJust)
+import qualified Data.Maybe
 import           Lens.Micro     ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC (ix)
 
-import           Magic          (getBoardHeight, getBoardWidth)
+import qualified Magic
 import           Types
 
 -- Hard-coded tile options. Picked from via Enum and translated via shapeToTile.
@@ -14,8 +14,8 @@ data Shape = Null | Nub | Line | Bend | Tee | Cross deriving (Bounded, Enum)
 inBounds :: (Int, Int) -> Bool
 inBounds (h,w) = h >= minY && h <= maxY && w >= minX && w <= maxX
   where
-    minX = -1; maxX = getBoardWidth  -- [-1, maxX]
-    minY = -1; maxY = getBoardHeight -- [-x, maxY]
+    minX = -1; maxX = Magic.getBoardWidth  -- [-1, maxX]
+    minY = -1; maxY = Magic.getBoardHeight -- [-x, maxY]
 
 -- N E W S
 -- @returns a conditional flow with the given direction added to its inlet set.
@@ -56,16 +56,16 @@ rotate (n, e, w, s) = (w, n, s, e)
 --         direction.
 adj :: Dir -> (Int, Int) -> (Int, Int)
 adj N (h,w) = (max (-1) (h-1), w)
-adj S (h,w) = (min getBoardHeight (h+1), w)
-adj E (h,w) = (h, min getBoardWidth (w+1))
+adj S (h,w) = (min Magic.getBoardHeight (h+1), w)
+adj E (h,w) = (h, min Magic.getBoardWidth (w+1))
 adj W (h,w) = (h, max (-1) (w-1))
 
 -- @return the same as adj (above), but limited by which cells the cursor is
 --         allowed to visit.
 cursorAdj :: Dir -> (Int, Int) -> (Int, Int)
 cursorAdj N (h,w) = (max 0 (h-1), w)
-cursorAdj S (h,w) = (min (getBoardHeight-1) (h+1), w)
-cursorAdj E (h,w) = (h, min (getBoardWidth-1) (w+1))
+cursorAdj S (h,w) = (min (Magic.getBoardHeight-1) (h+1), w)
+cursorAdj E (h,w) = (h, min (Magic.getBoardWidth-1) (w+1))
 cursorAdj W (h,w) = (h, max 0 (w-1))
 
 -- @return whether or not the square at that location can reach the tile
@@ -112,7 +112,7 @@ tapYX gs = gs ^. tap
 -- @return bool, whether or not the game has been won (i.e. the drain is
 --         reached)
 isComplete :: GameState -> Bool
-isComplete gs = isJust (drain_sq ^. distance)
+isComplete gs = Data.Maybe.isJust (drain_sq ^. distance)
   where drain_sq = gs ^. board ^?! ix (gs ^. drain)
 
 -- Helper function for Difficulty.

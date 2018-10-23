@@ -2,13 +2,12 @@ module Init
    ( mkInitState, mkRandomBoard'
    ) where
 
-import           Control.Monad (replicateM)
-import           Data.Array    (Array, array, listArray, (!))
-import           Debug.Trace   (trace)
+import qualified Control.Monad
+import qualified Data.Array
 import           Lens.Micro    ((%~), (&), (.~), (^.))
 import qualified System.Random as Random
 
-import           Magic         (getBoardBounds, getBoardHeight, getBoardWidth)
+import qualified Magic
 import           Types
 import           Util
 
@@ -32,11 +31,12 @@ mkInitState difficulty = do
 -- @return a randomly-generated Board, given an input Difficulty.
 mkRandomBoard' :: Difficulty -> IO (Board, (Int, Int), (Int, Int))
 mkRandomBoard' difficulty = do
-  random_squares <- replicateM (w * h) $ mkRandomSquare' difficulty
-  n              <- Random.randomRIO (0, getBoardWidth - 1)
+  random_squares <- Control.Monad.replicateM (w * h)
+                  $ mkRandomSquare' difficulty
+  n              <- Random.randomRIO (0, Magic.getBoardWidth - 1)
 
   let tapYX@(_,tx)   = (-1, n)
-  let drainYX@(_,dx) = (getBoardHeight, getBoardWidth - n - 1)
+  let drainYX@(_,dx) = (Magic.getBoardHeight, Magic.getBoardWidth - n - 1)
   let main_board     = zip [ (y,x) | x <- [0..w-1], y <- [0..h-1] ]
                            random_squares
   let top_border     = zip [ (y,x) | x <- [0..w-1], y <- [-1], x /= tx ]
@@ -61,12 +61,12 @@ mkRandomBoard' difficulty = do
                        ++   tl_border ++     tr_border
                        ++   bl_border ++     br_border
                        ++  tap_border ++  drain_border
-  let board          = array ( (-1, -1)
-                             , ( h,  w) -- w x h
-                             ) all_squares
+  let board          = Data.Array.array ( (-1, -1)
+                                        , ( h,  w) -- w x h
+                                        ) all_squares
   return (board, tapYX, drainYX)
   where
-    (h,w) = getBoardBounds
+    (h,w) = Magic.getBoardBounds
 
 -- @return a random Square.
 mkRandomSquare' :: Difficulty -> IO Square

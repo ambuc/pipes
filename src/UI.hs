@@ -5,39 +5,39 @@ module UI
 
 import           Brick.AttrMap              (attrName)
 import           Brick.Types                (Widget)
-import           Brick.Widgets.Border       (hBorder, vBorder)
-import           Brick.Widgets.Border.Style (unicode)
-import           Brick.Widgets.Center       (center, hCenter, vCenter)
+import qualified Brick.Widgets.Border
+import qualified Brick.Widgets.Border.Style
+import qualified Brick.Widgets.Center
 import           Brick.Widgets.Core         (emptyWidget, fill, hBox, hLimit,
                                              padLeftRight, str, vBox, vLimit,
                                              withAttr, withBorderStyle, (<+>),
                                              (<=>))
-import           Data.Array                 (elems, (!))
-import           Data.Maybe                 (fromMaybe, isJust)
-import           Debug.Trace                (trace)
+import qualified Data.Array
+import qualified Data.Maybe
 import           Lens.Micro                 ((%~), (&), (.~), (^.), (^?!))
 import           Lens.Micro.GHC             (each, ix)
 
-import           Magic
+import qualified Magic
 import           Types
-import           Util
+import qualified Util
 
 -- @return the rendered GameState.
 render :: GameState -> [Widget ()]
-render gs = [ withBorderStyle unicode
-            $ center
-            $ vLimit (getBoardHeight + 2) $ hLimit (getBoardWidth + 15)
+render gs = [ withBorderStyle Brick.Widgets.Border.Style.unicode
+            $ Brick.Widgets.Center.center
+            $ vLimit (Magic.getBoardHeight + 2)
+            $ hLimit (Magic.getBoardWidth + 15)
             $ hBox
                 [ drawGameState' gs
-                , padLeftRight 1 vBorder
+                , padLeftRight 1 Brick.Widgets.Border.vBorder
                 , hLimit 10
                   $   str ("Moves " ++ show (gs ^. moves))
-                  <=> hBorder
+                  <=> Brick.Widgets.Border.hBorder
                   <=> str (" Time " ++ show (gs ^. timer `div` 20))
                   <=> if gs ^. over then new_game_instructions else emptyWidget
                 ]
             ]
-  where new_game_instructions = vBox [ hBorder
+  where new_game_instructions = vBox [ Brick.Widgets.Border.hBorder
                                      , str "You win!"
                                      , str "Press:"
                                      , str " 1 - Easy"
@@ -128,17 +128,17 @@ showTile' max_dist time sq = [corpus !! (27 * fromEnum w + 9 * fromEnum s
 
 -- @return the rendered Board.
 drawBoard' :: Int -> Int -> Board -> Widget ()
-drawBoard' max_dist t b = hLimit (getBoardWidth + 2)
-                        $ vLimit (getBoardHeight + 2)
-                        $ vBox $ map (drawRow' b) [-1..getBoardHeight]
+drawBoard' max_dist t b = hLimit (Magic.getBoardWidth + 2)
+                        $ vLimit (Magic.getBoardHeight + 2)
+                        $ vBox $ map (drawRow' b) [-1..Magic.getBoardHeight]
   where
     -- @return the row at the given index.
     drawRow' :: Board -> Int -> Widget ()
-    drawRow' b h = hBox $ map (drawSquareAt' b h) [-1..getBoardWidth]
+    drawRow' b h = hBox $ map (drawSquareAt' b h) [-1..Magic.getBoardWidth]
 
     -- @return the square at the given coordinates.
     drawSquareAt' :: Board -> Int -> Int -> Widget ()
-    drawSquareAt' b h w = drawSquare' $ b ! (h,w)
+    drawSquareAt' b h w = drawSquare' $ b Data.Array.! (h,w)
 
     -- @return the rendered Square.
     drawSquare' :: Square -> Widget ()
@@ -153,7 +153,7 @@ drawBoard' max_dist t b = hLimit (getBoardWidth + 2)
 
     -- @return the text content of the Square.
     squareContent' :: Square -> Widget ()
-    squareContent' sq = if sq ^. hascursor && isNullTile (sq ^. tile)
+    squareContent' sq = if sq ^. hascursor && Util.isNullTile (sq ^. tile)
                           then str "░"
                           else str $ showTile' max_dist t sq
 
@@ -166,13 +166,13 @@ drawGameState' gs = drawBoard' (gs ^. maxdist) (gs ^. time) (gs ^. board)
 --         a default of zero.
 recomputeMaxDist' :: GameState -> GameState
 recomputeMaxDist' gs = gs & maxdist .~ new_max_dist
-  where new_max_dist = fromMaybe 0 $ maximum $ map (^. distance)
-                     $ elems (gs ^. board)
+  where new_max_dist = Data.Maybe.fromMaybe 0 $ maximum $ map (^. distance)
+                     $ Data.Array.elems (gs ^. board)
 
 -- @return the given GameState, with all _flowstate fields updated
 --         to reflect the new connectivity graph.
 recomputeFlow' :: GameState -> GameState
-recomputeFlow' gs = gs & board %~ trickleFrom 0 S (tapYX gs)
+recomputeFlow' gs = gs & board %~ trickleFrom 0 S (Util.tapYX gs)
   where
     -- @return the given Board, with all Squares adjacent to the the Square
     --         at the input coordinates explored / colored in.
@@ -180,15 +180,16 @@ recomputeFlow' gs = gs & board %~ trickleFrom 0 S (tapYX gs)
     trickleFrom dist dir (h,w) b
       | shouldVisit = b
       | otherwise   = exploreNeighbors dist (h,w)
-                      $ ix (h,w) . flow %~ addFlowFrom dir
+                      $ ix (h,w) . flow %~ Util.addFlowFrom dir
                       $ ix (h,w) . distance .~ Just dist
                       $ b
       where
         -- @return whether or not the adjacent cell should be visited.
         --         Implements some kind of A*, probably.
-        shouldVisit = (dist >= getMaxExploreDist)
-                   || ( isJust (b ^?! ix (h,w) . distance)
-                             && b ^?! ix (h,w) . distance <= Just dist)
+        shouldVisit = (dist >= Magic.getMaxExploreDist)
+                   || ( Data.Maybe.isJust (b ^?! ix (h,w) . distance)
+                      && b ^?! ix (h,w) . distance <= Just dist
+                      )
 
     -- @return the given Board, with all adjacent squares explored.
     exploreNeighbors :: Int -> (Int, Int) -> Board -> Board
@@ -202,11 +203,11 @@ recomputeFlow' gs = gs & board %~ trickleFrom 0 S (tapYX gs)
     --         given direction tested for connectivity / colored in.
     exploreDir :: Dir -> Int -> (Int, Int) -> Board -> Board
     exploreDir dir dist loc b
-      | canReach b loc dir = trickleFrom (succ dist) dir neighbor_yx b
-      | otherwise          = b
+      | Util.canReach b loc dir  = trickleFrom (succ dist) dir neighbor_yx b
+      | otherwise                = b
       where
         neighbor = b ^?! ix neighbor_yx
-        neighbor_yx = adj dir loc
+        neighbor_yx = Util.adj dir loc
 
 -- @return the given GameState, with the location of the cursor set.
 recomputeCursor' :: GameState -> GameState
@@ -215,7 +216,7 @@ recomputeCursor' gs = gs & board . ix (gs ^. cursor) . hascursor .~ True
 -- @return the given GameState, with the _over field filled in via
 --         Util.isComplete.
 recomputeOver' :: GameState -> GameState
-recomputeOver' gs = gs & over .~ isComplete gs
+recomputeOver' gs = gs & over .~ Util.isComplete gs
 
 -- @return the given GameState, except if the game has been won, the tap tile is
 --         redrawn as a T.
@@ -231,5 +232,5 @@ resetAll' :: GameState -> GameState
 resetAll' gs = gs & board . each %~ resetSquare
   where
     resetSquare :: Square -> Square
-    resetSquare Square {_tile = t} = mkEmptySquare { _tile = t}
+    resetSquare Square {_tile = t} = Util.mkEmptySquare { _tile = t}
 

@@ -1,7 +1,7 @@
 module Main where
 
 import           Brick.AttrMap               (AttrMap, attrMap, attrName)
-import           Brick.BChan                 (BChan, newBChan, writeBChan)
+import qualified Brick.BChan
 import           Brick.Main                  (App (App), appAttrMap,
                                               appChooseCursor, appDraw,
                                               appHandleEvent, appStartEvent,
@@ -10,57 +10,57 @@ import           Brick.Main                  (App (App), appAttrMap,
 import           Brick.Types                 (BrickEvent (AppEvent, VtyEvent),
                                               EventM, Next, Widget)
 import           Brick.Util                  (bg, fg, on)
-import           Control.Concurrent          (forkIO, threadDelay)
+import qualified Control.Concurrent
 import           Control.Concurrent.STM.TVar (TVar, newTVar, readTVar)
-import           Control.Monad               (forever, void)
-import           Control.Monad.STM           (atomically)
+import qualified Control.Monad
+import qualified Control.Monad.STM
 import           Graphics.Vty                as V
 import           Lens.Micro                  ((^.))
 import           System.Random               as R
 
-import           Actions                     (move, spin, tick)
+import qualified Actions
 import           Init                        (mkInitState)
-import           Magic                       (getBChanQueueLength, getFrameRate)
+import qualified Magic
 import           Types
-import           UI                          (redraw, render)
+import qualified UI
 
 data Tick = Tick
 
 -- @returns the next GameState (wrapped in a Brick EventM).
 appEvent :: GameState -> BrickEvent () Tick -> EventM () (Next GameState)
-appEvent s (AppEvent Tick)           = continue $ tick s
+appEvent s (AppEvent Tick)           = continue $ Actions.tick s
 appEvent s (VtyEvent (V.EvKey k [])) = appEventKey s k
-appEvent s _                         = continue $ redraw s
+appEvent s _                         = continue $ UI.redraw s
 
 -- Helper function for appEvent, which only processes characters.
 appEventKey :: GameState -> Key -> EventM () (Next GameState)
 appEventKey s k
   | k == V.KEsc   || k == V.KChar 'q'  = halt s
-  | k == V.KUp    || k == V.KChar 'w'  = continue $ redraw $ move N s
-  | k == V.KDown  || k == V.KChar 's'  = continue $ redraw $ move S s
-  | k == V.KLeft  || k == V.KChar 'a'  = continue $ redraw $ move W s
-  | k == V.KRight || k == V.KChar 'd'  = continue $ redraw $ move E s
-  | k == V.KChar ' '                   = continue $ redraw $ spin s
+  | k == V.KUp    || k == V.KChar 'w'  = continue $ UI.redraw $ Actions.move N s
+  | k == V.KDown  || k == V.KChar 's'  = continue $ UI.redraw $ Actions.move S s
+  | k == V.KLeft  || k == V.KChar 'a'  = continue $ UI.redraw $ Actions.move W s
+  | k == V.KRight || k == V.KChar 'd'  = continue $ UI.redraw $ Actions.move E s
+  | k == V.KChar ' '                   = continue $ UI.redraw $ Actions.spin s
   | k == V.KChar '1'                   = if s ^.over
                                            then suspendAndResume
-                                                $ redraw <$> mkInitState Easy
-                                           else continue (redraw s)
+                                                $ UI.redraw <$> mkInitState Easy
+                                           else continue (UI.redraw s)
   | k == V.KChar '2'                   = if s ^.over
                                            then suspendAndResume
-                                                $ redraw <$> mkInitState Mid
-                                           else continue (redraw s)
+                                                $ UI.redraw <$> mkInitState Mid
+                                           else continue (UI.redraw s)
   | k == V.KChar '3'                   = if s ^.over
                                            then suspendAndResume
-                                                $ redraw <$> mkInitState Hard
-                                           else continue (redraw s)
-  | otherwise                          = continue $ redraw s
+                                                $ UI.redraw <$> mkInitState Hard
+                                           else continue (UI.redraw s)
+  | otherwise                          = continue $ UI.redraw s
 
 -- @return initialized tick thread at getFrameRate (encapsulated in delayVar)
-controlThread :: TVar Int -> BChan Tick -> IO ()
-controlThread delay chan = forever $ do
-  writeBChan chan Tick
-  ms <- atomically $ readTVar delay
-  threadDelay ms
+controlThread :: TVar Int -> Brick.BChan.BChan Tick -> IO ()
+controlThread delay chan = Control.Monad.forever $ do
+  Brick.BChan.writeBChan chan Tick
+  ms <- Control.Monad.STM.atomically $ readTVar delay
+  Control.Concurrent.threadDelay ms
 
 main :: IO ()
 main = do
@@ -78,9 +78,9 @@ main = do
                                        ]
                      } :: App GameState Tick ()
 
-  chan     <- newBChan getBChanQueueLength
-  delayVar <- atomically $ newTVar getFrameRate
-  void $ forkIO $ controlThread delayVar chan
+  chan     <- Brick.BChan.newBChan Magic.getBChanQueueLength
+  delayVar <- Control.Monad.STM.atomically $ newTVar Magic.getFrameRate
+  Control.Monad.void $ Control.Concurrent.forkIO $ controlThread delayVar chan
 
-  init_state <- redraw <$> mkInitState Easy
-  void $ customMain init_vty (Just chan) init_app init_state
+  init_state <- UI.redraw <$> mkInitState Easy
+  Control.Monad.void $ customMain init_vty (Just chan) init_app init_state

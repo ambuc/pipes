@@ -2,8 +2,8 @@
 
 module Types where
 
-import           Data.Array    (Array)
-import           Lens.Micro.TH (makeLenses)
+import qualified Data.Array
+import qualified Lens.Micro.TH
 
 data Difficulty  = Easy | Mid | Hard deriving (Eq)
 data Dir         = N | E | W | S
@@ -16,7 +16,7 @@ data Square      = Square {        _tile :: Tile
                           ,   _hascursor :: Bool
                           ,    _isborder :: Bool
                           } deriving (Show)
-type Board       = Array (Int, Int) Square -- (Y, X)
+type Board       = Data.Array.Array (Int, Int) Square -- (Y, X)
 data GameState   = GameState {      _board :: Board
                              ,        _tap :: (Int, Int) -- (Y, X)
                              ,      _drain :: (Int, Int) -- (Y, X)
@@ -29,5 +29,5 @@ data GameState   = GameState {      _board :: Board
                              , _difficulty :: Difficulty
                              }
 
-makeLenses ''Square
-makeLenses ''GameState
+Lens.Micro.TH.makeLenses ''Square
+Lens.Micro.TH.makeLenses ''GameState
